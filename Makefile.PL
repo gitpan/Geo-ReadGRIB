@@ -8,7 +8,7 @@ WriteMakefile(
     PREREQ_PM         => {}, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Geo/ReadGRIB.pm', # retrieve abstract from module
-       AUTHOR         => 'NULL <lyon@vwh.net>') : ()),
+       AUTHOR         => 'NULL <frank.l.cox@gmail.com>') : ()),
     SKIP              => [qw(static static_lib dynamic_lib)],
     clean             => {FILES => "wgrib.exe"},
 );

@@ -1,5 +1,5 @@
 package Geo::ReadGRIB;
-$VERSION = .01;
+$VERSION = .02;
 
 use 5.006;
 use Time::Local;
@@ -26,7 +26,7 @@ sub new {
 
    my $class = shift;
    my $gFile = shift;
-   unless (defined $gFile) {die "new(): grib file required"}
+   unless (defined $gFile) {die "new(): Usage: Geo::ReadGRIB->new(GRIB_FILE)"}
    my $self = {};
    bless $self, $class;
 
@@ -39,6 +39,18 @@ sub new {
 }
 
 ###########################################################################
+# DESTROY
+#
+# Remove WGRIB.tmp at object close
+###########################################################################
+sub DESTROY {
+
+   my $self = shift;
+   unlink ("WGRIB.tmp");
+}
+
+
+###########################################################################
 # openGrib()
 #
 # Open grib file using wgrib.exe and extract header data
@@ -47,7 +59,7 @@ sub openGrib {
    
    my $self = shift;
 
-   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d 1 -4yr -PDS10 -GDS10 -text -nh";
+   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d 1 -4yr -PDS10 -GDS10 -text -nh -o WGRIB.tmp";
 
    my $header = qx($cmd);
  
@@ -114,7 +126,7 @@ sub getCatalog {
 
    my $self = shift;
    
-   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName}";
+   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -o WGRIB.tmp";
 
    my @cat = qx($cmd);
    
@@ -142,7 +154,7 @@ sub getCatalogVerbose {
 
    my $self = shift;
    
-   my $cmd = "$LIB_DIR/wgrib.exe -v $self->{fileName}";
+   my $cmd = "$LIB_DIR/wgrib.exe -v $self->{fileName} -o WGRIB.tmp";
 
    my @cat = qx($cmd);
    
@@ -373,11 +385,11 @@ sub extract {
          next;
       }
       $record = $self->{catalog}->{$tm}->{$type};
-      $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d $record -nh";
+      $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d $record -nh -o WGRIB.tmp";
       $res = qx($cmd);
       print "$cmd - OFFSET: $offset " . $offset *4 . " bytes\n"
          if $self->{DEBUG};
-      open F, "dump";
+      open F, "WGRIB.tmp";
       seek F,$offset *4, 0;
       read F, $dump, 4;
       $dump = unpack "f", $dump;
@@ -533,8 +545,10 @@ FreeBSD, LINUX and Windows. In all cases the compiler was gcc and on Windows
 ActivePerl and nmake were used and the CC=gcc option was used with Makefile.PL
 I've also been able to compile wgrib.c with gcc on Solaris Sparc and i386.
 
-wgrib.exe creates a file called dump in the local directory so the runner of 
-Geo::ReadGRIB needs write access.
+wgrib.exe creates a file called WGRIB.tmp in the local directory so the id that  
+runs a program using Geo::ReadGRIB needs write access for it to work. This
+temp file will be removed by Geo::ReadGRIB::DESTROY when the object ceases 
+to exist.
 
 =head1 Methods
 
@@ -543,7 +557,7 @@ Geo::ReadGRIB needs write access.
 =item $object = new Geo::ReadGRIB "grib_file";
 
 Returns a Geo::ReadGRIB object that can open GRIB format file "grib_file".
-wgrib.exe is used to extract full header info from the "self discribing" GRIB
+wgrib.exe is used to extract full header info from the "self describing" GRIB
 file. 
 
 =item $object->getCatalog(); 
@@ -585,7 +599,7 @@ time requested is in the range of times in the file but not one of the exact
 times in the file, the nearest existing time will be used. An error will be set
 if time is out of range.
 
-type will be one of the data types in the data
+type will be one of the data types in the data or an error is set.
 
 =item $object->getError();
 
