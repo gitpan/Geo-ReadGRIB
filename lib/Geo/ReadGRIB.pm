@@ -1,5 +1,5 @@
 package Geo::ReadGRIB;
-$VERSION = .02;
+$VERSION = .30;
 
 use 5.006;
 use Time::Local;
@@ -589,8 +589,8 @@ Extracts forecast data for given type and location. Time is optional.
 Extracts data for all times in file unless a specific time is given 
 in epoch seconds.
 
-lat and long will be in the range -90 to 90 degrees lat and 0 to 364 degrees
-long. Longitude in GRIB files is 0 to 364 east. If you have degrees in 
+lat and long will be in the range -90 to 90 degrees lat and 0 to 359 degrees
+long. Longitude in GRIB files is 0 to 359 east. If you have degrees in 
 longitude west you will need to convert it first. If lat or long is out of
 range for the current file an error will be set ( see getError() ).
 
