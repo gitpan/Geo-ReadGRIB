@@ -1,8 +1,8 @@
 package Geo::ReadGRIB;
-$VERSION = .30;
+$VERSION = .40;
 
-use 5.006;
-use Time::Local;
+use 5.6.1;
+use strict;
 
 
 my $LIB_DIR = "./";
@@ -26,7 +26,9 @@ sub new {
 
    my $class = shift;
    my $gFile = shift;
-   unless (defined $gFile) {die "new(): Usage: Geo::ReadGRIB->new(GRIB_FILE)"}
+   unless (defined $gFile) {
+      die "new(): Usage: Geo::ReadGRIB->new(GRIB_FILE)"
+   }
    my $self = {};
    bless $self, $class;
 
@@ -38,17 +40,6 @@ sub new {
    return $self;
 }
 
-###########################################################################
-# DESTROY
-#
-# Remove WGRIB.tmp at object close
-###########################################################################
-sub DESTROY {
-
-   my $self = shift;
-   unlink ("WGRIB.tmp");
-}
-
 
 ###########################################################################
 # openGrib()
@@ -56,12 +47,16 @@ sub DESTROY {
 # Open grib file using wgrib.exe and extract header data
 ###########################################################################
 sub openGrib {
+
+   use Time::Local;
    
    my $self = shift;
 
-   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d 1 -4yr -PDS10 -GDS10 -text -nh -o WGRIB.tmp";
+   my $tmp = $self->tempfile();
+   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d 1 -4yr -PDS10 -GDS10 -text -nh -o $tmp";
 
    my $header = qx($cmd);
+   unlink $tmp;
  
    if ($?) {
       die "Error in $cmd: $?";
@@ -126,9 +121,11 @@ sub getCatalog {
 
    my $self = shift;
    
-   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -o WGRIB.tmp";
+   my $tmp = $self->tempfile();
+   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -o $tmp";
 
    my @cat = qx($cmd);
+   unlink $tmp;
    
    if ($?) {
       die "Error in \$cmd: $?";
@@ -154,9 +151,11 @@ sub getCatalogVerbose {
 
    my $self = shift;
    
-   my $cmd = "$LIB_DIR/wgrib.exe -v $self->{fileName} -o WGRIB.tmp";
+   my $tmp = $self->tempfile();
+   my $cmd = "$LIB_DIR/wgrib.exe -v $self->{fileName} -o $tmp";
 
    my @cat = qx($cmd);
+   unlink $tmp;
    
    if ($?) {
       die "Error in \$cmd: $?";
@@ -385,11 +384,13 @@ sub extract {
          next;
       }
       $record = $self->{catalog}->{$tm}->{$type};
-      $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d $record -nh -o WGRIB.tmp";
+
+      my $tmp = $self->tempfile();
+      $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d $record -nh -o $tmp";
       $res = qx($cmd);
       print "$cmd - OFFSET: $offset " . $offset *4 . " bytes\n"
          if $self->{DEBUG};
-      open F, "WGRIB.tmp";
+      open F, "$tmp";
       seek F,$offset *4, 0;
       read F, $dump, 4;
       $dump = unpack "f", $dump;
@@ -399,6 +400,7 @@ sub extract {
          if $self->{DEBUG}; 
       $self->{data}->{$tm}->{$lat}->{$long}->{$type} = $dump;
       close F;
+      unlink $tmp;
       last if $time != 0;
    }
    return 0;
@@ -413,7 +415,7 @@ sub extract {
 #  
 # The structure is
 #
-#    $data->{time}->{lat}->{long}->{type}
+#    $t->{time}->{lat}->{long}->{type}
 ###########################################################################
 sub getDataHash {
    my $self = shift;
@@ -442,6 +444,21 @@ sub m2ft {
    my $self = shift;
    my $m    = shift;
    return $m * 3.28;
+}
+
+###########################################################################
+# tempfile()
+#
+# retrun a  tempfile name
+###########################################################################
+sub tempfile {
+
+   my $self = shift;
+
+   use File::Temp qw(:mktemp);
+
+   my ($fh,$fn) = mkstemp("wgrib.tmp.XXXXXXXXX");
+   return $fn;
 }
 
 ###########################################################################
@@ -545,10 +562,10 @@ FreeBSD, LINUX and Windows. In all cases the compiler was gcc and on Windows
 ActivePerl and nmake were used and the CC=gcc option was used with Makefile.PL
 I've also been able to compile wgrib.c with gcc on Solaris Sparc and i386.
 
-wgrib.exe creates a file called WGRIB.tmp in the local directory so the id that  
-runs a program using Geo::ReadGRIB needs write access for it to work. This
-temp file will be removed by Geo::ReadGRIB::DESTROY when the object ceases 
-to exist.
+wgrib.exe creates a file called wgrib.tmp.XXXXXXXXX in the local directory where 
+the X's are random chars. The id that runs a program using Geo::ReadGRIB needs
+write access to work. This temp file will be removed after use by each method 
+calling wgrib.exe
 
 =head1 Methods
 
@@ -614,7 +631,7 @@ data extracted from the GRIB file for in the life of the object.
  
 The hash structure is
 
-   $data->{time}->{lat}->{long}->{type}
+   $d->{time}->{lat}->{long}->{type}
 
 =back
 

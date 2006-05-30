@@ -4,3 +4,12 @@ Revision history for Perl extension Geo::ReadGRIB.
 	- original version; created by h2xs 1.23 with options
 		-X -b 5.6.0 -n Geo::ReadGRIB
 
+0.40  Sat May27
+
+        - Added a tempfile() method based on File::Tmp to name
+          temp files
+        - Each method that uses wgrib.exe now uses tempfile() to
+          name temp files and then removes then when done. 
+	- Changed tests to use full path to test GRIB file
+	- POD doc tweaks	 
+

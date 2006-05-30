@@ -5,7 +5,7 @@
 # and the module has to be able to find wgrib.exe 
 
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 
 ###########################################################################
 # Object create test
@@ -48,3 +48,14 @@ ok(defined $data->{$time}->{$lat}->{$long}->{$type})
 ok($data->{$time}->{$lat}->{$long}->{$type} == 3.43)
  or diag("\$data->{$time}->{$lat}->{$long}->{$type}: 
          \$data->{1142564400}->{45}->{160}->{\'HTSGW\'} should return 3.43");
+
+#test show() method
+
+
+
+   
+my $show = $w->show();
+ 
+ok($show =~  /lat: 75.25 to 44.75/ and
+   $show =~ /Sat Mar 11 12:00:00 2006 \(1142078400\)/) 
+   or diag("show() did not return expected string");
