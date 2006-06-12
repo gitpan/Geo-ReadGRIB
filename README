@@ -1,5 +1,5 @@
-Geo-ReadGRIB version 0.01
-=========================
+Geo-ReadGRIB
+============
 
 Geo::ReadGRIB is an object Perl module that provides read access to data 
 distributed in GRIB files. Specifically, I wrote it to access NOAA Wavewatch 

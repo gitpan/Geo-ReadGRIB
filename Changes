@@ -7,9 +7,18 @@ Revision history for Perl extension Geo::ReadGRIB.
 0.40  Sat May27
 
         - Added a tempfile() method based on File::Tmp to name
-          temp files
+          temp filed so had to change perl version to "use 5.6.1"
         - Each method that uses wgrib.exe now uses tempfile() to
-          name temp files and then removes then when done. 
+          name temp files and then removes them when done. 
 	- Changed tests to use full path to test GRIB file
 	- POD doc tweaks	 
+
+0.50  June12
+
+        - New method extractLaLo() extracts forecast data for a given
+          type and time for a range of locations. The locations will be
+          all (lat, long) points in the GRIB file inside the rectangular
+          area defined by (lat1, long1) and (lat2, long2) where lat1
+          >= lat2 and long1 <= long2.  - that is, lat1 is north or lat2
+          and long1 is west of long2 (or the same as...)
 

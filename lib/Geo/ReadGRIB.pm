@@ -1,5 +1,14 @@
+###########################################################################
+# Geo::ReadGRIB 
+# 
+# - A Perl extension that gives read access to GRIB "GRIdded Binary" 
+#   format Weather data files.
+#
+# - Copyright (C) 2006 by Frank Cox
+###########################################################################
+
 package Geo::ReadGRIB;
-$VERSION = .40;
+$VERSION = .50;
 
 use 5.6.1;
 use strict;
@@ -311,10 +320,103 @@ sub lalo2offset {
 
 }
 
+
+###########################################################################
+# extractLaLo(data_type, lat1, long1, lat2, long2, time)
+#
+# Extracts forecast data for a range of locations from (lat1, long1) to 
+# (lat2, long2) for the given data_type and time. This will be much faster
+# than repeated calls to extract() because only one call to wgrib and just
+# one file open are required.
+#
+# require: lat1 >= lat2 and long1 <= long2 - that is, lat1 is north or lat2
+#          and long1 is west of long2 (or is the same as)
+#
+###########################################################################
+sub extractLaLo {
+
+   my $self   = shift;
+   my $type   = shift;
+   my $lat1   = shift;
+   my $long1  = shift;
+   my $lat2   = shift;
+   my $long2  = shift;
+   my $time   = shift;
+
+   my @times = sort keys  %{$self->{catalog}};
+
+   # First see that requested values are in range...
+
+   if (not $lat1 >= $lat2 or not $long1 <= $long2) {
+     $self->{ERROR} = "ERROR extractLaLo() ";
+     $self->{ERROR} .= "require: lat1 >= lat2 and long1 <= long2";
+     return 1; 
+   }
+
+   if ($time < $self->{TIME} or $time > $self->{LAST_TIME}) {
+      $self->{ERROR} = "ERROR extractLaLo() \$time \"$time\" out of range ";
+      $self->{ERROR} .= scalar gmtime($times[0]) . " ($times[0]) to ";
+      $self->{ERROR} .= scalar gmtime($times[$#times]) 
+                     . " ($times[$#times])";
+      return 1;
+   }
+   if ($lat1 > $self->{La1} or $lat1 < $self->{La2}
+       or $lat2 > $self->{La1} or $lat2 < $self->{La2}) {
+      $self->{ERROR} = "extractLaLo(): LAT >$lat1 or $lat2< out of range ";
+      $self->{ERROR} .= "$self->{La1} to $self->{La2}";
+      return 1;
+   }
+   
+   if ($long1 < $self->{Lo1} or $long1 > $self->{Lo2}
+       or $long2 < $self->{Lo1} or $long2 > $self->{Lo2}) {
+      $self->{ERROR} = "extractLaLo(): LONG: >$long1 or $long2
+      < out of range ";
+      $self->{ERROR} .= "$self->{Lo1} to $self->{Lo2}";
+      return 1;
+   }
+
+   # use nearest time in catalog...
+   for (my $i=0, my $j=1; $j<= @times; $i++, $j++) {
+      if ($time >= $times[$i] and $time <= $times[$j]) {
+         if (($time - $times[$i]) <= ($times[$j] - $time)) {
+            $self->{THIS_TIME} = $times[$i]
+         }
+         else {
+            $self->{THIS_TIME} = $times[$j]
+         }
+         last;
+      }
+   }
+
+   my $record = $self->{catalog}->{$time}->{$type};
+
+   my $tmp = $self->tempfile();
+   my $cmd = "$LIB_DIR/wgrib.exe $self->{fileName} -d $record -nh -o $tmp";
+   my $res = qx($cmd);
+   open F, $tmp;
+
+   my ($offset, $dump);
+   for (my $lo= $long1; $lo <= $long2; $lo += $self->{LoInc} ) {
+      for (my $la= $lat1; $la >= $lat2; $la -= $self->{LaInc} ) {
+         $offset = $self->lalo2offset($la, $lo);
+         seek F, $offset *4, 0;
+         read F, $dump, 4;
+         $dump = unpack "f", $dump;
+         $dump = sprintf "%.2f", $dump;
+         $dump = "UNDEF" if $dump > 999900000000000000000;
+         print gmtime($time) . ": $self->{v_catalog}->{$type}  $dump\n"
+            if $self->{DEBUG};
+         $self->{data}->{$time}->{$la}->{$lo}->{$type} = $dump;
+      }
+   }
+   close F;
+   unlink $tmp;   
+}
+
 ###########################################################################
 # extract(data_type, lat, long, [time])
 # 
-# Extracts forcast data for given type and location. Ectracts data for all
+# Extracts forecast data for given type and location. Ectracts data for all
 # times in file unless a specific time is given in epoch seconds.
 # 
 # type will be one of the data types in the data
@@ -521,6 +623,12 @@ Binary" format Weather data files.
   print $w->show(); 
   
   $w->extract(data_type, lat, long, time); 
+
+  #
+  # or $w->extractLaLo(data_type, lat1, long1, lat2, long2, time);
+  # to extract a range of locations
+  #
+
   print $w->getError(),"\n";    # undef if no error
   $data = $w->getDataHash();
   
@@ -600,7 +708,18 @@ Returns a formatted text string description of the data in the GRIB file.
 This includes latitude, longitude, and time ranges, and data type text 
 descriptions (if getCatalogVerbose() has run).
 
-=item $object->extract(data_type, lat, long, time);
+=item $object->extractLaLo(data_type, lat1, long1, lat2, long2, time);
+
+Extracts forecast data for a given type and time for a range of locations. 
+The locations will be all (lat, long) points in the GRIB file inside the 
+rectangular area defined by (lat1, long1) and (lat2, long2) where lat1 >= lat2
+and long1 <= long2. That is, lat1 is north or lat2 and long1 is west of long2
+(or is the same as...)
+
+Since extractLaLo() needs only one call to wgrib and one temp file open,
+this is faster than using extract() to get the same data points.
+
+=item $object->extract(data_type, lat, long, [time]);
 
 Extracts forecast data for given type and location. Time is optional.
 Extracts data for all times in file unless a specific time is given 
