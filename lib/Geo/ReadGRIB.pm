@@ -8,7 +8,7 @@
 ###########################################################################
 
 package Geo::ReadGRIB;
-$VERSION = .50;
+$VERSION = .60;
 
 use 5.6.1;
 use strict;
@@ -27,6 +27,20 @@ foreach my $inc (@INC) {
 unless (-e "$LIB_DIR/wgrib.exe") {
    die "CAN'T CONTINUE: Path to  wgrib.exe not found"
 }
+
+## Set some signal handlers to clean up temp files in case of interruptions
+#  it does this by calling exit(0) which will run the END block
+
+$SIG{INT} = $SIG{QUIT} = $SIG{TERM} = 
+   sub {
+      print "ReadGRIB attempting cleanup...\n";
+      exit(0);
+   };
+
+END {
+   unlink glob("wgrib.tmp.*");
+}
+
 
 ###########################################################################
 # new()
@@ -86,6 +100,7 @@ sub openGrib {
       # print "$invel \n";
       if ($invel =~ /=/) {
          ($arg,$val) = split /=/, $invel;
+         $val =~ s/^\s+//;
          $head{$arg} = $val;
          # print "    ($arg,$val) \n";
       }
@@ -184,7 +199,6 @@ sub getCatalogVerbose {
 # parseGDS()
 #
 # Assumes gds is dumped in "decimal" (-GDS10)
-# 
 ###########################################################################
 sub parseGDS {
 
@@ -414,7 +428,7 @@ sub extractLaLo {
 }
 
 ###########################################################################
-# extract(data_type, lat, long, [time])
+# $val = extract(data_type, lat, long, [time])
 # 
 # Extracts forecast data for given type and location. Ectracts data for all
 # times in file unless a specific time is given in epoch seconds.
@@ -551,7 +565,7 @@ sub m2ft {
 ###########################################################################
 # tempfile()
 #
-# retrun a  tempfile name
+# return a  temp file name
 ###########################################################################
 sub tempfile {
 
@@ -564,38 +578,94 @@ sub tempfile {
 }
 
 ###########################################################################
+# $p = getParam(parm_name)
+#
+# getParam(param_name) returns a scalar with the value of param_name
+# getParam("show") returns a scalar listing published parameter names.
+###########################################################################
+sub getParam {
+   
+   my $self = shift;
+   my $arg  = shift;
+
+   my @published = qw/TIME LAST_TIME La1 La2 LaInc Lo1 Lo2 LoInc fileName/;
+      
+   my $param;
+   if (defined $arg) { 
+      if ($arg =~ /show/i) {
+         $param = "@published";
+      }
+      elsif (grep /$arg/, @published) {
+         $param = $self->{$arg};
+      }
+      else {
+         $self->{ERROR}  = "getParam(): ";
+         $self->{ERROR} .= "$arg - Undefined or unpublished parameter";
+         return 1;
+      }
+   }
+   else {
+      $self->{ERROR}  = "getParam(): Usage: getParam(param_name)";
+      return 1;
+   }
+
+   return $param;
+}
+
+
+###########################################################################
 # show()
+# 
+# Returns a scalar containing a string with some selected meta data 
+# describing the GRIB file. 
 ###########################################################################
 sub show {
 
    my $self = shift;
-   
-   my $types;
-   foreach (sort keys %{$self->{v_catalog}}) {
-      $types .= sprintf "%8s: %s\n", $_, $self->{v_catalog}->{$_};
+   my $arg  = shift;
+
+   my $param;
+
+   my @published = qw/LAST_TIME La1 La2 LaInc Lo1 Lo2 LoInc TIME fileName/;
+      
+   if (defined $arg) { 
+      if ($arg =~ /show/i) {
+         $param = "@published";
+      }
+      elsif (grep /$arg/, @published) {
+         $param = $self->{$arg};
+      }
+      else {
+         $self->{ERROR} = "show(): $arg - Undefined or unpublished parameter";
+         return 1;
+      }
    }
-
-   my @times = sort keys %{$self->{catalog}};
-   my $t = scalar gmtime($times[0]) . " ($times[0]) to ";
-   $t   .= scalar gmtime($times[$#times]) . " ($times[$#times])";
-
-   my $param = <<"   PARAM";
-
-   Locations:
-
-   lat: $self->{La1} to $self->{La2}
-   long: $self->{Lo1} to $self->{Lo2}
-
-   Times:
-
-   $t
-
-   Types:
-
-   $types
-   PARAM
-   
-   return $param
+   else {
+      my $types;
+      foreach (sort keys %{$self->{v_catalog}}) {
+         $types .= sprintf "%8s: %s\n", $_, $self->{v_catalog}->{$_};
+      }
+  
+      my @times = sort keys %{$self->{catalog}};
+      my $t = scalar gmtime($times[0]) . " ($times[0]) to ";
+      $t   .= scalar gmtime($times[$#times]) . " ($times[$#times])";
+  
+      $param = <<"      PARAM";
+     
+      Locations:
+     
+      lat: $self->{La1} to $self->{La2}
+      long: $self->{Lo1} to $self->{Lo2}
+  
+      Times:
+  
+      $t
+     
+      Types:
+      \n$types
+      PARAM
+   }
+   return $param;
 }
 
 
@@ -701,6 +771,48 @@ getCatalogVerbose() will get the full text descriptions of data items.
 getFullCatalog() just runs both getCatalog() and getCatalogVerbose() . Each
 method invocation needs to call wgrib.exe. Just running getCatalog() may save 
 some cycles if full descriptions aren't needed.
+
+=item $object->getParam(param);
+
+=item $object->getParam("show");
+
+I<getParam(param)> returns a scalar with the value of param where param is one
+of TIME, LAST_TIME, La1, La2, LaInc, Lo1, Lo2, LoInc, fileName.
+
+=over
+
+=item
+
+I<TIME> is the time of the earliest data items in epoch seconds. 
+
+=item
+
+I<LAST_TIME> is the time of the last data items in epoch seconds.
+
+=item
+
+I<La1> I<La2> First and last latitude points in the GRIB file (or most northerly and most southerly).
+
+=item
+
+I<LaInc> The increment between latitude points in the GRIB file. 
+
+=item
+
+I<Lo1> I<Lo2> First and last longitude points in the GRIB file (or most westerly and most easterly).
+
+=item
+
+I<LoInc> The increment between latitude points in the GRIB file.
+
+=item
+
+I<filename> The file name of the GRIB file this object will open to extract
+data.
+
+=back
+
+I<getParam(show)> Returns a string listing the names of all published parameters.
 
 =item $object->show();
 
