@@ -8,5 +8,9 @@ t/2-Geo-ReadGRIB-Data.t
 t/3-Geo-ReadGRIB-Data-LaLo.t
 t/4-Geo-ReadGRIB-Param.t
 lib/Geo/ReadGRIB.pm
+lib/Geo/ReadGRIB/PlaceIterator.pm
+lib/Geo/ReadGRIB/Place.pm
 lib/Geo/Sample-GRIB/akw.HTSGW.grb
 wgrib.c
+examples/GDrawGRIB.pl
+META.yml                                 Module meta-data (added by MakeMaker)

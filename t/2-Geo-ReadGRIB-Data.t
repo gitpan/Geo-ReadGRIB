@@ -33,7 +33,7 @@ my $w = Geo::ReadGRIB->new("$TEST_FILE");
 $w->getFullCatalog();
 
 my ($type, $lat, $long, $time) = ("HTSGW", 45, 160, 1142564400);
-$w->extract($type, $lat, $long, $time); $w->dumpit();
+my $tpit = $w->extract($type, $lat, $long, $time); # $w->dumpit();
 
 $err = $w->getError();
 
@@ -50,9 +50,6 @@ ok($data->{$time}->{$lat}->{$long}->{$type} == 3.43)
          \$data->{1142564400}->{45}->{160}->{\'HTSGW\'} should return 3.43");
 
 #test show() method
-
-
-
    
 my $show = $w->show();
  
