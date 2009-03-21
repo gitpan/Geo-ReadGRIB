@@ -20,6 +20,8 @@ package Geo::ReadGRIB::Place;
 use strict;
 use warnings;
 
+our $VERSION = 1.0;
+
 #--------------------------------------------------------------------------
 #  new( )
 #--------------------------------------------------------------------------
@@ -103,12 +105,16 @@ a call to Geo::ReadGRIB::PlaceIterator::Current()
     use Geo::ReadGRIB;
 
     $w = new Geo::ReadGRIB "grib-file";
+    $w->getFullCatalog;
+
+    print $w->show,"\n";
   
-    $tpit = $w->extractLaLo(data_type, lat1, long1, lat2, long2, time);
+    $plit = $w->extractLaLo(data_type, lat1, long1, lat2, long2, time);
+    die $w->getError if $w->getError;
 
-    # $tpit is a Geo::ReadGRIB::PlaceIterator
+    # $plit is a Geo::ReadGRIB::PlaceIterator
 
-    while ( $place = $tpit->current() and $tpit->next ) {
+    while ( $place = $plit->current() and $plit->next ) {
 
         # $place is a Geo::ReadGRIB::Place object
 
@@ -117,7 +123,7 @@ a call to Geo::ReadGRIB::PlaceIterator::Current()
         $longitude  = $place->long;
         $data_types = $place->types; # an array ref of type names
 
-        $data       = $place->data('data_type');
+        $data       = $place->data( data_type );
 
         # process data...
     }
@@ -126,14 +132,14 @@ a call to Geo::ReadGRIB::PlaceIterator::Current()
 =head1 DESCRIPTION
 
 Objects of this class are returned by the current() method of a 
-PlaceIterator object which itself has be returned by the 
+PlaceIterator object which itself has been returned by the 
 extractLaLo() method of a Geo::ReadGRIB object. A place object
 has a unique latitude and longitude for one time and has data for 
 one or more data types. 
 
 =head1 METHODS
 
-Objects of this class are read only and all parameters  may be
+Objects of this class are read only and all parameters may be
 accessed by the following methods.
 
 =over 4

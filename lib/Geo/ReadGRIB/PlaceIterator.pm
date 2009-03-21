@@ -5,7 +5,7 @@
 #
 #  DESCRIPTION: A Geo::ReadGRIB::PlaceIterator object contains a collection of
 #               Geo::ReadGRIB data for a regular area and has methods to return
-#               Geo::ReadGRIB::Place in sorted sequence of times and .
+#               Geo::ReadGRIB::Place in sorted sequence of locations
 #
 #        FILES:  ---
 #         BUGS:  ---
@@ -22,6 +22,8 @@ package Geo::ReadGRIB::PlaceIterator;
 use strict;
 use warnings;
 use Geo::ReadGRIB::Place;
+
+our $VERSION = 1.0;
 
 #--------------------------------------------------------------------------
 #  new( )
@@ -110,6 +112,7 @@ sub current {
 #--------------------------------------------------------------------------
 sub numLong {
     my $self = shift;
+    $self->_indexData() if not $self->isSorted;
     return $self->{x_y}->[0];
 }
 
@@ -118,6 +121,7 @@ sub numLong {
 #--------------------------------------------------------------------------
 sub numLat {
     my $self = shift;
+    $self->_indexData() if not $self->isSorted;
     return $self->{x_y}->[1];
 }
 
@@ -195,6 +199,7 @@ sub _indexData {
     $self->{place_sorted} = $self->_sortThese($these);
     $self->{count_of_places} = $loC;
     $self->isSorted( 1 );
+    $self->first;
 
     return;
 }
@@ -245,7 +250,8 @@ sub addData {
 
 =head1 NAME
 
-Geo::ReadGRIB::PlaceIterator - Provides methods to iterate through GRIB data.
+Geo::ReadGRIB::PlaceIterator - Provides methods to iterate through GRIB data
+in geographic order and to return Geo::ReadGRIB::Place objects for each location.
 
 =head1 VERSION
 
@@ -256,19 +262,32 @@ This documentation refers to Geo::ReadGRIB::PlaceIterator version 1.0
     use Geo::ReadGRIB;
 
     $w = new Geo::ReadGRIB "grib-file";
+    $w->getFullCatalog;
+
+    print $w->show,"\n";
   
     $plit = $w->extractLaLo(data_type, lat1, long1, lat2, long2, time);
+    die $w->getError if $w->getError;
 
     # $plit is a Geo::ReadGRIB::PlaceIterator
 
-    while ( $place = $plit->current() and $plit->next ) {
+    for $y ( 0 .. $plit->numLat -1 ) {
+        for $x ( 0 .. $plit->numLong -1 ) {
+        
+            my $place = $plit->current;
+            
+            # $place is a Geo::ReadGRIB::Place object
 
-        # $place is a Geo::ReadGRIB::Place object
+            $time       = $place->thisTime;
+            $latitude   = $place->lat;
+            $longitude  = $place->long;
+            $data_types = $place->types; # an array ref of type names
+            $data = $place->data(data_type);
 
+            # process data for $x, $y
 
-        $data       = $place->data('data_type');
-
-        # process data...
+            $plit->next;
+        }
     }
 
 
@@ -288,7 +307,7 @@ east and north to south starting in the northwest corner and ending in the
 southeast. After the last item in the southeast corner of the extracted region, 
 another call to next() returns B<undef>. 
 
-The convenience methods numLat() and numLong() return the number latitude and
+The convenience methods numLat() and numLong() return the number of latitude and
 longitude points respectively. This is handy to, for example, provide the x, y
 dimensions for a GD::Image new() method.
 
@@ -303,6 +322,10 @@ dimensions for a GD::Image new() method.
 =item $object->next;
 
 =item $place = $object->current;
+
+=item $y = $object->numLat;
+
+=item $y = $object->numLong;
 
 =back
 

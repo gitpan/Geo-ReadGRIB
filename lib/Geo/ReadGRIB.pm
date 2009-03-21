@@ -12,8 +12,9 @@ package Geo::ReadGRIB;
 use 5.006_001;
 use strict;
 use IO::File;
+use Carp;
 
-our $VERSION = 0.91;
+our $VERSION = 0.98;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -50,7 +51,7 @@ sub new {
     my $class = shift;
     my $gFile = shift;
     unless ( defined $gFile ) {
-        die "new(): Usage: Geo::ReadGRIB->new(GRIB_FILE)";
+        croak "new(): Usage: Geo::ReadGRIB->new(GRIB_FILE)";
     }
     my $self = {};
     bless $self, $class;
@@ -84,7 +85,7 @@ sub openGrib {
     unlink $tmp;
 
     if ($?) {
-        die "Error in $cmd: $?";
+        croak "Error in $cmd: $?";
     }
 
     my @inv = split /:/, $header;
@@ -177,7 +178,7 @@ sub _getCatalog {
     unlink $tmp;
 
     if ($?) {
-        die "Error in \$cmd: $?";
+        croak "Error in \$cmd: $?";
     }
 
     my @line;
@@ -209,7 +210,7 @@ sub getFullCatalog{
     unlink $tmp;
 
     if ($?) {
-        die "Error in \$cmd: $?";
+        croak "Error in \$cmd: $?";
     }
 
     my @line;
@@ -478,7 +479,7 @@ sub extractLaLo {
         my $cmd =
           "\"$LIB_DIR\"/wgrib.exe \"$self->{fileName}\" -d $record -nh -o $tmp";
         my $res = qx($cmd);
-        my $F = IO::File->new( $tmp ) or die "Can't open temp file";
+        my $F = IO::File->new( $tmp ) or croak "Can't open temp file";
 
         $dump = "";
         for ( $lo = $long1 ; $lo <= $long2 ; $lo += $self->{LoInc} ) {
@@ -580,7 +581,7 @@ sub extract {
         $res = qx($cmd);
         print "$cmd - OFFSET: $offset " . $offset * 4 . " bytes\n"
           if $self->{DEBUG};
-        my $F = IO::File->new( "$tmp" ) or die "Can't open temp file";
+        my $F = IO::File->new( "$tmp" ) or croak "Can't open temp file";
         seek $F, $offset * 4, 0;
         read $F, $dump, 4;
         $dump = unpack "f", $dump;
@@ -769,18 +770,17 @@ Binary" format Weather data files.
   
   die $w->getError,"\n" if $w->getError;    # undef if no error
 
-  while (  $place =  $plit->current("HTSGW") and $plit->next ) {
+  while (  $place =  $plit->current and $plit->next ) {
       
       # $place is a Geo::ReadGRIB::Place object
 
-      $time      = $place->thisTime;
-      $latitude  = $place->lat;
-      $longitude = $place->long;
-      $data_type = $place->type;
-      $data      = $place->data;
+      $time       = $place->thisTime;
+      $latitude   = $place->lat;
+      $longitude  = $place->long;
+      $data_types = $place->types; # an array ref of type names
+      $data       = $place->data;
 
       # do something with each place in the extracted rectangular area
-      # for extracted time or times...
   }
 
 

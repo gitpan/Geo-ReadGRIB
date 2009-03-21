@@ -274,7 +274,7 @@ This documentation refers to GDrawGRIB.pl version 1.0
 
     # The output is a GIF file: out-GDrawGRIB.gif in the current directory.
     #
-    # For use with other Wavewatch GRIB files adjust latitude longitude pairs,
+    # To use with other Wavewatch GRIB files, adjust latitude longitude pairs,
     # time and data type as needed. These will all be found as veriables near
     # the beginning of the program.
     # 
