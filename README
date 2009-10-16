@@ -1,6 +1,17 @@
 Geo-ReadGRIB
 ============
 
+*****************************************************
+
+THIS IS A TEST VERSION WITH NEW SUPPORT CMS GRIBS 
+
+THERE ARE MANY CHANGES AND FULL TESTING HAS NOT BEEN DONE
+
+USE V0.98 FOR ANYTHING EXCEPT TESTING
+
+******************************************************
+
+
 Geo::ReadGRIB is an object Perl module that provides read access to data 
 distributed in GRIB files. Specifically, I wrote it to access NOAA Wavewatch 
 III marine weather model forecasts which are packaged as GRIB. 
@@ -31,7 +42,7 @@ To install this module type the following:
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2006 by Frank Lyon Cox
+Copyright (C) 2009 by Frank Lyon Cox
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.4 or,
