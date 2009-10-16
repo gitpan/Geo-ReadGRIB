@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 0.98;
+our $VERSION = 0.98_10;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -122,6 +122,7 @@ sub openGrib {
         #     $self->{$_} = $head{$_};
     }
 
+
     # reduce date string to 'time' format
     my ( $yr, $mo, $day, $hr ) = unpack 'A4A2A2A2', $self->{d};
     $self->{TIME} = timegm( 0, 0, $hr, $day, $mo - 1, $yr - 1900 );
@@ -129,6 +130,11 @@ sub openGrib {
     $self->{LAST_TIME} = $self->{THIS_TIME} = $self->{TIME};
 
     $self->parseGDS( $head{GDS10} );
+
+    # if this isn't a lat/long grid we can't go on
+    if ( $self->{GRID_TYPE} != 0 ) {
+        croak "GDS byte 6 not 0: Only latitude/longitude grids are currently supported";
+    }
 
     $self->_getCatalog;
 
@@ -143,8 +149,8 @@ sub openGrib {
 #--------------------------------------------------------------------------
 sub getCatalogVerbose {
     my $self = shift;
-    $self->{ERROR} = "Method getCatalogVerbose() DEPRECATED and is now redundant  ";
-    $self->{ERROR} .= "in Geo::ReadGRIB V1.0 and above. Use getFullCatalog() instead";
+    $self->error( "Method getCatalogVerbose() DEPRECATED and is now redundant  "
+        . "in Geo::ReadGRIB V0.98 and above. Use getFullCatalog() instead" );
     $self->getFullCatalog();
     return 1;
 }
@@ -159,8 +165,8 @@ sub getCatalogVerbose {
 #--------------------------------------------------------------------------
 sub getCatalog {
     my $self = shift;
-    $self->{ERROR} = "Method getCatalog DEPRECATED and is no longer needed  ";
-    $self->{ERROR} .= "in Geo::ReadGRIB V1.0 and above";
+    $self->error( "Method getCatalog DEPRECATED and is no longer needed  "
+        . "in Geo::ReadGRIB V1.0 and above" );
     return 1;
 }
 
@@ -237,6 +243,8 @@ sub parseGDS {
 
     my @GDS = split /\s+/, $gds;
 
+    $self->{GRID_TYPE} = $GDS[5];
+
     my @slice = @GDS[ 6, 7 ];
     $self->{Ni} = $self->toDecimal( \@slice );
 
@@ -249,16 +257,124 @@ sub parseGDS {
     @slice = @GDS[ 13, 14, 15 ];
     $self->{Lo1} = $self->toDecimal( \@slice ) / 1000;
 
+    my @rc_flags = split '', sprintf "%08b", $GDS[16];
+    
+    # if INCREMENTS_FLAG is true get increments from GDS else calculate
+    $self->{INCREMENTS_FLAG} = $rc_flags[0]; 
+
     @slice = @GDS[ 17, 18, 19 ];
     $self->{La2} = $self->toDecimal( \@slice ) / 1000;
 
     @slice = @GDS[ 20, 21, 22 ];
     $self->{Lo2} = $self->toDecimal( \@slice ) / 1000;
 
-    $self->{LaInc} = $self->calInc( $self->{La1}, $self->{La2}, $self->{Nj} );
-    $self->{LoInc} = $self->calInc( $self->{Lo1}, $self->{Lo2}, $self->{Ni} );
+    @slice = @GDS[ 23, 24 ];
+    if ( ($slice[0] == $slice[1] and $slice[0] == 255) and not $self->{INCREMENTS_FLAG} ) {
+        $self->{LoInc} = $self->calInc( $self->{Lo1}, $self->{Lo2}, $self->{Ni} );
+    }
+    else {
+        $self->{LoInc} = $self->toDecimal( \@slice ) / 1000;
+    }
+
+    @slice = @GDS[ 25, 26 ];
+    if ( ($slice[0] == $slice[1] and $slice[0] == 255) and not $self->{INCREMENTS_FLAG} ) {
+        $self->{LaInc} = $self->calInc( $self->{La1}, $self->{La2}, $self->{Nj} );
+    }
+    else {
+        $self->{LaInc} = $self->toDecimal( \@slice ) / 1000;
+    }
+
+    my @scan_mode_flags = split '', sprintf "%08b", $GDS[27];
+
+    # if SN_SCAN_FLAG true data runs in numeric order south-north
+    # elce data runs north-south
+    $self->sn_scan_flag( $scan_mode_flags[1] );
+
+    if ( $scan_mode_flags[0] ) {
+        croak "Scan mode -i not yet supported. Please contact the Geo::ReadGRIB maintainer to add support for GRIB files that scan east to west";
+    }
+
+    if ( $scan_mode_flags[2] ) {
+        croak "Scan mode (J,I) not yet supported. Please contact the Geo::ReadGRIB maintainer to add support for GRIB files where adjacent points are consecutive in the j direction (north/south)";
+    }
+
+    # Calculate effective Lo where thay are shifted west to 0 degrees.
+    # This will be used for finding data offset and for checking for 
+    # out of range args where ranges may cross long 0
+    $self->{eLo2} =  $self->{Lo2};
+    $self->{eLo1} =  $self->{Lo2} - ($self->{Ni} -1) * $self->{LoInc};
+    $self->{Lo_SHIFT} = 0 - $self->{eLo1};
 
     return;
+}
+
+#--------------------------------------------------------------------------
+# sn_scan_flag( [flag] )
+# Getter/setter for flag
+#--------------------------------------------------------------------------
+sub sn_scan_flag {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{SN_SCAN_FLAG} = $flag if defined $flag;
+    return  $self->{SN_SCAN_FLAG};
+}
+
+#--------------------------------------------------------------------------
+# error( [error message] )
+# Getter/setter for errors
+#--------------------------------------------------------------------------
+sub error {
+    my $self = shift;
+    my $error = shift;
+
+    $self->{ERROR} = $error if defined $error;
+    return  $self->{ERROR};
+}
+
+#--------------------------------------------------------------------------
+# clearError()
+# set errors undef
+#--------------------------------------------------------------------------
+sub clearError {
+    my $self = shift;
+    undef $self->{ERROR};
+}
+
+
+#--------------------------------------------------------------------------
+# validLo( 1ong )
+#
+# check that longs are in range and return true if they are, else false.
+#--------------------------------------------------------------------------
+sub validLo {
+
+    my $self = shift;
+    my $lo   = shift;
+
+    $lo += $self->{Lo_SHIFT};
+    if ( $lo > 360 ) {
+        $lo -= 360;
+    }
+ 
+    $lo /= $self->{LoInc};
+    print ":lo: $lo\n";
+    if ( $lo < 0 or $lo > $self->{Ni} ) {
+        return 0;
+    }
+
+    return 1;
+}
+
+#--------------------------------------------------------------------------
+# adjustLong( long )
+#
+# takes a long and returns a effective long adjusted to the shifted grid
+#--------------------------------------------------------------------------
+sub adjustLong {
+
+    my $self = shift;
+    my $l1   = shift;
 }
 
 #--------------------------------------------------------------------------
@@ -318,7 +434,7 @@ sub calInc {
     my $size;
     if ( $pts == 0 ) {
         $size = 0;
-        $self->{ERROR} = "calInc: \$pts = 0";
+        $self->error( "calInc: \$pts = 0" );
     }
     elsif ( $c1 < 0 or $c2 < 0 ) {
 
@@ -344,24 +460,47 @@ sub lalo2offset {
     my $lat  = shift;
     my $long = shift;
 
-    undef $self->{ERROR};
+    
+    my $thislong = 0;
+#    $long += $self->{Lo_SHIFT};
+
+    $self->clearError;
 
     # First check if values are out of range...
-    if ( $lat > $self->{La1} or $lat < $self->{La2} ) {
-        $self->{ERROR} = "lalo2offset(): LAT >$lat< out of range ";
-        $self->{ERROR} .= "$self->{La1} to $self->{La2}";
-        return;
+    if ( $self->sn_scan_flag ) {
+        if ( $lat < $self->{La1} or $lat > $self->{La2} ) {
+            $self->error( "lalo2offset(): LAT >$lat< out of range $self->{La1} to $self->{La2}" );
+            return -1;
+        }
+    }
+    else {
+        if ( $lat > $self->{La1} or $lat < $self->{La2} ) {
+            $self->error( "lalo2offset(): LAT >$lat< out of range $self->{La1} to $self->{La2}" );
+            return -1;
+        }
     }
 
-    if ( $long < $self->{Lo1} or $long > $self->{Lo2} ) {
-        $self->{ERROR} = "lalo2offset(): LONG: >$long< out of range ";
-        $self->{ERROR} .= "$self->{Lo1} to $self->{Lo2}";
-        return;
+    if ( not $self->validLo( $long ) ) {
+        $self->error( "lalo2offset(): LONG: >$long< out of range $self->{Lo1} to $self->{Lo2}" );
+        return -1;
     }
 
-    my $out =
-      ( ( $self->{La1} - $lat ) / $self->{LaInc} ) * $self->{Ni} +
-      ( ( $long - $self->{Lo1} ) / $self->{LoInc} );
+    my $out;
+    
+    if ( $self->sn_scan_flag ) {
+        $thislong = $long + $self->{Lo_SHIFT};
+
+        if ( $thislong > 360 ) {
+            $thislong -= 360;
+        }
+
+        $out =  ( ( ( $lat - $self->{La1}  ) / $self->{LaInc} ) * $self->{Ni} ) 
+                + ( ($thislong ) / $self->{LoInc} );
+    }
+    else {
+        $out =  ( ( $self->{La1} - $lat ) / $self->{LaInc} ) * $self->{Ni} 
+                + ( ($long - $self->{Lo1} ) / $self->{LoInc} );
+    }
 
     return sprintf "%d", $out;
 }
@@ -404,7 +543,7 @@ sub extractLaLo {
         push @types, $type_s;
     }
     else {
-        $self->{ERROR} = "ERROR extractLaLo() \$types required";
+        $self->error( "ERROR extractLaLo() \$types required" );
         return;
     }
 
@@ -413,42 +552,41 @@ sub extractLaLo {
     # First see that requested values are in range...
 
     if ( not $lat1 >= $lat2 or not $long1 <= $long2 ) {
-        $self->{ERROR} = "ERROR extractLaLo() ";
-        $self->{ERROR} .= "require: lat1 >= lat2 and long1 <= long2";
+        $self->error( "ERROR extractLaLo() require: lat1 >= lat2 and long1 <= long2" );
         return;
     }
 
     if ( not defined $time ) {
-        $self->{ERROR} = "ERROR extractLaLo() \$time is required ";
+        $self->error( "ERROR extractLaLo() \$time is required " );
         return;
     }
 
     if ( $time < $self->{TIME} or $time > $self->{LAST_TIME} ) {
-        $self->{ERROR} = "ERROR extractLaLo() \$time \"$time\" out of range ";
-        $self->{ERROR} .= scalar gmtime( $times[0] ) . " ($times[0]) to ";
-        $self->{ERROR} .=
-          scalar gmtime( $times[-1] ) . " ($times[-1])";
+        $self->error( "ERROR extractLaLo() \$time \"$time\" out of range " 
+        .  scalar gmtime( $times[0] ) . " ($times[0]) to " 
+        . scalar gmtime( $times[-1] ) . " ($times[-1])" );
         return;
     }
 
-    if (   $lat1 > $self->{La1}
-        or $lat1 < $self->{La2}
-        or $lat2 > $self->{La1}
-        or $lat2 < $self->{La2} )
-    {
-        $self->{ERROR} = "extractLaLo(): LAT >$lat1 or $lat2< out of range ";
-        $self->{ERROR} .= "$self->{La1} to $self->{La2}";
-        return;
+    if ( $self->sn_scan_flag ) {
+        if (   $lat1 < $self->{La1} or $lat1 > $self->{La2}
+            or $lat2 < $self->{La1} or $lat2 > $self->{La2} )
+        {
+            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->{La1} to $self->{La2}" );
+            return;
+        }
+    }
+    else {
+        if (   $lat1 > $self->{La1} or $lat1 < $self->{La2}
+            or $lat2 > $self->{La1}  or $lat2 < $self->{La2} )
+        {
+            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->{La1} to $self->{La2}" );
+            return;
+        }
     }
 
-    if (   $long1 < $self->{Lo1}
-        or $long1 > $self->{Lo2}
-        or $long2 < $self->{Lo1}
-        or $long2 > $self->{Lo2} )
-    {
-        $self->{ERROR} =
-          "extractLaLo(): LONG: >$long1 or $long2 < out of range ";
-        $self->{ERROR} .= "$self->{Lo1} to $self->{Lo2}";
+    if ( not $self->validLo( $long1 ) or not $self->validLo( $long2 ) ) {
+        $self->error( "extractLaLo(): LONG: >$long1 or $long2 < out of range $self->{Lo1} to $self->{Lo2}" );
         return;
     }
 
@@ -456,17 +594,7 @@ sub extractLaLo {
 
     # if time is given, use nearest time in catalog...
     if ( defined $time ) {
-        for ( my $i = 0, my $j = 1 ; $j <= @times ; $i++, $j++ ) {
-            if ( $time >= $times[$i] and $time <= $times[$j] ) {
-                if ( ( $time - $times[$i] ) <= ( $times[$j] - $time ) ) {
-                    $self->{THIS_TIME} = $times[$i];
-                }
-                else {
-                    $self->{THIS_TIME} = $times[$j];
-                }
-                last;
-            }
-        }
+        $self->findNearestTime( $time );
     }
 
     my ( $offset, $dump, $record, $lo, $la );
@@ -524,41 +652,32 @@ sub extract {
 
     my $offset = $self->lalo2offset( $lat, $long );
 
-    $time = 0 unless defined $time;
+    if ( $offset < 0 ) {
+        # do not reset error, there will be one from lalo2offset()
+        return 1;
+    }
 
-    undef $self->{ERROR};
+    $time = 0 unless defined $time;
 
     if (   $time != 0 and $time < $self->{TIME} 
        or $time > $self->{LAST_TIME} ) {
 
         my @times = sort keys %{ $self->{catalog} };
-        $self->{ERROR} = "ERROR extract() \$time \"$time\" out of range ";
-        $self->{ERROR} .= scalar gmtime( $times[0] ) . " ($times[0]) to ";
-        $self->{ERROR} .=
-          scalar gmtime( $times[-1] ) . " ($times[-1])";
+        $self->error( "ERROR extract() \$time \"$time\" out of range " 
+        . scalar gmtime( $times[0] ) . " ($times[0]) to " 
+        . scalar gmtime( $times[-1] ) . " ($times[-1])" );
         return 1;
     }
 
     # If a time is given find nearest in catalog
     if ( defined $time ) {
-        my @times = sort keys %{ $self->{catalog} };
-        for ( my $i = 0, my $j = 1 ; $j <= @times ; $i++, $j++ ) {
-            if ( $time >= $times[$i] and $time <= $times[$j] ) {
-                if ( ( $time - $times[$i] ) <= ( $times[$j] - $time ) ) {
-                    $self->{THIS_TIME} = $times[$i];
-                }
-                else {
-                    $self->{THIS_TIME} = $times[$j];
-                }
-
-                last;
-            }
-        }
+        $self->findNearestTime( $time );
     }
+
     my ( $record, $cmd, $res, $dump );
 
     unless ( defined $self->{v_catalog}->{$type} ) {
-        $self->{ERROR} = "extract() Type not found: $type";
+        $self->error( "extract() Type not found: $type" );
         return 1;
     }
 
@@ -567,6 +686,8 @@ sub extract {
     #
     # If record is alredy in $self->{data} use that
     # else go to disk...
+
+    my $plit = Geo::ReadGRIB::PlaceIterator->new();
 
     $dump = "";
     foreach my $tm ( sort keys %{ $self->{catalog} } ) {
@@ -590,11 +711,42 @@ sub extract {
         print gmtime($tm) . ": $self->{v_catalog}->{$type}  $dump\n"
           if $self->{DEBUG};
         $self->{data}->{$tm}->{$lat}->{$long}->{$type} = $dump;
+        $plit->addData( $tm, $lat, $long, $type, $dump );
         close $F;
         unlink $tmp;
         last if $time != 0;
     }
-    return;
+    return $plit;
+}
+
+#--------------------------------------------------------------------------
+# fineNearestTime( time )
+# 
+# Find nearest time in catalog...
+#--------------------------------------------------------------------------
+sub findNearestTime {
+
+    my $self = shift;
+    my $time = shift;
+
+    my @times = sort keys %{ $self->{catalog} };
+
+    if ( 1 == @times ) {
+        $self->{THIS_TIME} = $times[0];
+    }
+    else {
+        for ( my $i = 0, my $j = 1 ; $j <= @times ; $i++, $j++ ) {
+            if ( $time >= $times[$i] and $time <= $times[$j] ) {
+                if ( ( $time - $times[$i] ) <= ( $times[$j] - $time ) ) {
+                    $self->{THIS_TIME} = $times[$i];
+                }
+                else {
+                    $self->{THIS_TIME} = $times[$j];
+                }
+                last;
+            }
+        }
+    }
 }
 
 #--------------------------------------------------------------------------
@@ -616,11 +768,11 @@ sub getDataHash {
 #--------------------------------------------------------------------------
 # getError()
 #
-# returns error string from $self->{ERROR}
+# returns error string from $self->error
 #--------------------------------------------------------------------------
 sub getError {
     my $self = shift;
-    return defined $self->{ERROR} ? $self->{ERROR} : undef;
+    return defined $self->error ? $self->error : undef;
 }
 
 #--------------------------------------------------------------------------
@@ -672,13 +824,12 @@ sub getParam {
             $param = $self->{$arg};
         }
         else {
-            $self->{ERROR} = "getParam(): ";
-            $self->{ERROR} .= "$arg - Undefined or unpublished parameter";
+            $self->error( "getParam(): $arg - Undefined or unpublished parameter" );
             return 1;
         }
     }
     else {
-        $self->{ERROR} = "getParam(): Usage: getParam(param_name)";
+        $self->error( "getParam(): Usage: getParam(param_name)" );
         return 1;
     }
 
@@ -708,8 +859,7 @@ sub show {
             $param = $self->{$arg};
         }
         else {
-            $self->{ERROR} =
-              "show(): $arg - Undefined or unpublished parameter";
+            $self->error( "show(): $arg - Undefined or unpublished parameter" );
             return 1;
         }
     }
@@ -747,6 +897,16 @@ __END__
 
 =head1 NAME
 
+*****************************************************
+
+THIS IS A TEST VERSION WITH NEW SUPPORT CMS GRIBS -- 
+
+FULL TESTING HAS NOT BEEN DONE --
+
+USE V0.98 FOR ANYTHING EXCEPT TESTING
+
+******************************************************
+
 Geo::ReadGRIB - Perl extension that gives read access to GRIB 1 "GRIdded
 Binary" format Weather data files.
 
@@ -762,7 +922,7 @@ Binary" format Weather data files.
   
   print $w->show(); 
   
-  $w->extract(data_type, lat, long, time);
+  $plit = $w->extract(data_type, lat, long, time);
 
   # or 
 
@@ -778,7 +938,7 @@ Binary" format Weather data files.
       $latitude   = $place->lat;
       $longitude  = $place->long;
       $data_types = $place->types; # an array ref of type names
-      $data       = $place->data;
+      $data       = $place->data( data_type );
 
       # do something with each place in the extracted rectangular area
   }
@@ -925,7 +1085,7 @@ Extracted data is also retained in the ReadGRIB object data structure.
 Since extractLaLo() needs only one call to wgrib and one temp file open,
 this is faster than using extract() to get the same data points one at a time.
 
-=item $object->extract(data_type, lat, long, I<time>);
+=item $plit = $object->extract(data_type, lat, long, I<time>);
 
 Extracts forecast data for given type and location. I<time> is optional.
 Extracts data for all times in file unless a specific time is given 
@@ -941,13 +1101,19 @@ time requested is in the range of times in the file but not one of the exact
 times in the file, the nearest existing time will be used. An error will be set
 if time is out of range.
 
+Returns a L<Geo::ReadGRIB::PlaceIterator> object containing the extracted data
+which can be used to iterate through the data in order sorted by lat and then long.
+
+Extracted data is also retained in the ReadGRIB object data structure.
+
+
 type will be one of the data types in the data or an error is set.
 
 =item $object->getError();
 
 Returns string messages for the last error set. If no error is set getError()
-returns undef. Any method that sets errors will clear errors first when called.
-It's good practice to check errors after an extract().
+returns undef. Only the most recent error will be show. It's good practice to 
+check errors after actions, at least while developing applications.
 
 =item $object->getDataHash();
 

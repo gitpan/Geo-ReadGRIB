@@ -38,7 +38,7 @@ $w->extractLaLo($type, $lat1, $long1, $lat2, $long2, $time);
 
 $err = $w->getError();
 
-diag("ERROR: $err") if defined $err;
+diag("ERRORx: $err") if defined $err;
 
 my $data = $w->getDataHash();
 

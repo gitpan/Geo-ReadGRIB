@@ -29,3 +29,19 @@ Revision history for Perl extension Geo::ReadGRIB.
         - Added new method getParam() to return values of selected 
           parameters useful to users.  
 
+0.98  March 6 2009
+
+        - Added Geo::ReadGRIB::Place and Geo::ReadGRIB::PlaceIterator
+          classes.
+        - extractLaLo() now returns a PlaceIterator object;  
+        - Deprecated getCatalog() and getCatalogVerbose(). Getting the 
+          offset index for each data type and time is now done during 
+          object creation.
+
+0.99  Oct 2009
+
+        - A major bug fix release to support Canadian high res gribs.
+        - Add a check for GDS byte 6 = 0. Croak if not (yet) supported
+          lat/long grid
+        - Discover scan mode from byte 28. Many changes to support south
+          to north scanning. Some refactoring and new tests. 

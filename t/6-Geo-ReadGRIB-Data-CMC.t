@@ -16,8 +16,8 @@ use Geo::ReadGRIB;
 ## Find path to test file
 my $TEST_FILE;
 foreach my $inc (@INC) {
-   if (-e "$inc/Geo/Sample-GRIB/akw.HTSGW.grb") {
-      $TEST_FILE = "$inc/Geo/Sample-GRIB/akw.HTSGW.grb";
+   if (-e "$inc/Geo/Sample-GRIB/2009100900_P000.grib") {
+      $TEST_FILE = "$inc/Geo/Sample-GRIB/2009100900_P000.grib";
       last;
    }  
 }
@@ -33,7 +33,7 @@ my $w = Geo::ReadGRIB->new("$TEST_FILE");
 $w->getFullCatalog();
 
 # try out of range value
-my ($type, $lat, $long, $time) = ("HTSGW", 400, 160, 1142564400);
+my ($type, $lat, $long, $time) = ("WIND", 600, 160, 1255046400);
 my $tpit = $w->extract($type, $lat, $long, $time); # $w->dumpit();
 
 $err = $w->getError();
@@ -41,7 +41,7 @@ ok( $err )
    or diag("lat should be out of range: $err");
 
 
-($type, $lat, $long, $time) = ("HTSGW", 45, 160, 1142564400);
+($type, $lat, $long, $time) = ("WIND", 90, -59, 1255046400);
 $tpit = $w->extract($type, $lat, $long, $time); # $w->dumpit();
 
 $err = $w->getError();
@@ -54,15 +54,16 @@ my $data = $w->getDataHash();
 ok(defined $data->{$time}->{$lat}->{$long}->{$type})
    or diag("\$data->{$time}->{$lat}->{$long}->{$type} is not defined");
 
+my $value = $data->{$time}->{$lat}->{$long}->{$type};
 
-ok($data->{$time}->{$lat}->{$long}->{$type} == 3.43)
+ok($data->{$time}->{$lat}->{$long}->{$type} == 13.22)
  or diag("\$data->{$time}->{$lat}->{$long}->{$type}: 
-         \$data->{1142564400}->{45}->{160}->{\'HTSGW\'} should return 3.43");
+         \$data->{1255046400}->{45}->{160}->{\'$type\'} should return 13.22 not $value");
 
 #test show() method
    
 my $show = $w->show();
- 
-ok($show =~  /lat: 75.25 to 44.75/ and
-   $show =~ /Sat Mar 11 12:00:00 2006 \(1142078400\)/) 
+#diag($show); 
+ok($show =~  /lat: -90 to 90/ and
+   $show =~ /Fri Oct  9 00:00:00 2009 \(1255046400\)/) 
    or diag("show() did not return expected string");

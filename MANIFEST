@@ -7,10 +7,13 @@ t/1-Geo-ReadGRIB-Object.t
 t/2-Geo-ReadGRIB-Data.t
 t/3-Geo-ReadGRIB-Data-LaLo.t
 t/4-Geo-ReadGRIB-Param.t
+t/5-Geo-ReadGRIB-Iter.t
+t/6-Geo-ReadGRIB-Data-CMC.t
 lib/Geo/ReadGRIB.pm
 lib/Geo/ReadGRIB/PlaceIterator.pm
 lib/Geo/ReadGRIB/Place.pm
 lib/Geo/Sample-GRIB/akw.HTSGW.grb
+lib/Geo/Sample-GRIB/2009100900_P000.grib
 wgrib.c
 examples/GDrawGRIB.pl
 META.yml                                 Module meta-data (added by MakeMaker)
