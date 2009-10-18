@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 0.98_20;
+our $VERSION = 0.98_30;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -358,7 +358,6 @@ sub validLo {
     }
  
     $lo /= $self->{LoInc};
-    print ":lo: $lo\n";
     if ( $lo < 0 or $lo > $self->{Ni} ) {
         return 0;
     }
@@ -897,6 +896,14 @@ __END__
 
 =head1 NAME
 
+
+
+Geo::ReadGRIB - Perl extension that gives read access to GRIB 1 "GRIdded
+Binary" format Weather data files.
+
+
+=head1 SYNOPSIS
+
 *****************************************************
 
 THIS IS A TEST VERSION WITH NEW SUPPORT CMS GRIBS 
@@ -906,11 +913,6 @@ THERE ARE MANY CHANGES AND FULL TESTING HAS NOT BEEN DONE
 USE V0.98 FOR ANYTHING EXCEPT TESTING
 
 ******************************************************
-
-Geo::ReadGRIB - Perl extension that gives read access to GRIB 1 "GRIdded
-Binary" format Weather data files.
-
-=head1 SYNOPSIS
 
   use Geo::ReadGRIB;
   $w = new Geo::ReadGRIB "grib-file";
