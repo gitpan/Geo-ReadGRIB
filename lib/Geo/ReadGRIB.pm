@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 0.98_30;
+our $VERSION = 0.98_50;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -246,16 +246,16 @@ sub parseGDS {
     $self->{GRID_TYPE} = $GDS[5];
 
     my @slice = @GDS[ 6, 7 ];
-    $self->{Ni} = $self->toDecimal( \@slice );
+    $self->Ni( $self->toDecimal( \@slice ) );
 
     @slice = @GDS[ 8, 9 ];
-    $self->{Nj} = $self->toDecimal( \@slice );
+    $self->Nj( $self->toDecimal( \@slice ) );
 
     @slice = @GDS[ 10, 11, 12 ];
-    $self->{La1} = $self->toDecimal( \@slice ) / 1000;
+    $self->La1( $self->toDecimal( \@slice ) / 1000 );
 
     @slice = @GDS[ 13, 14, 15 ];
-    $self->{Lo1} = $self->toDecimal( \@slice ) / 1000;
+    $self->Lo1( $self->toDecimal( \@slice ) / 1000 );
 
     my @rc_flags = split '', sprintf "%08b", $GDS[16];
     
@@ -263,25 +263,25 @@ sub parseGDS {
     $self->{INCREMENTS_FLAG} = $rc_flags[0]; 
 
     @slice = @GDS[ 17, 18, 19 ];
-    $self->{La2} = $self->toDecimal( \@slice ) / 1000;
+    $self->La2( $self->toDecimal( \@slice ) / 1000 );
 
     @slice = @GDS[ 20, 21, 22 ];
-    $self->{Lo2} = $self->toDecimal( \@slice ) / 1000;
+    $self->Lo2( $self->toDecimal( \@slice ) / 1000 );
 
     @slice = @GDS[ 23, 24 ];
     if ( ($slice[0] == $slice[1] and $slice[0] == 255) and not $self->{INCREMENTS_FLAG} ) {
-        $self->{LoInc} = $self->calInc( $self->{Lo1}, $self->{Lo2}, $self->{Ni} );
+        $self->LoInc( $self->calInc( $self->Lo1, $self->Lo2, $self->Ni ) );
     }
     else {
-        $self->{LoInc} = $self->toDecimal( \@slice ) / 1000;
+        $self->LoInc( $self->toDecimal( \@slice ) / 1000 );
     }
 
     @slice = @GDS[ 25, 26 ];
     if ( ($slice[0] == $slice[1] and $slice[0] == 255) and not $self->{INCREMENTS_FLAG} ) {
-        $self->{LaInc} = $self->calInc( $self->{La1}, $self->{La2}, $self->{Nj} );
+        $self->LaInc = $self->calInc( $self->La1, $self->La2, $self->Nj );
     }
     else {
-        $self->{LaInc} = $self->toDecimal( \@slice ) / 1000;
+        $self->LaInc( $self->toDecimal( \@slice ) / 1000 );
     }
 
     my @scan_mode_flags = split '', sprintf "%08b", $GDS[27];
@@ -301,8 +301,8 @@ sub parseGDS {
     # Calculate effective Lo where thay are shifted west to 0 degrees.
     # This will be used for finding data offset and for checking for 
     # out of range args where ranges may cross long 0
-    $self->{eLo2} =  $self->{Lo2};
-    $self->{eLo1} =  $self->{Lo2} - ($self->{Ni} -1) * $self->{LoInc};
+    $self->{eLo2} =  $self->Lo2;
+    $self->{eLo1} =  $self->Lo2 - ($self->Ni -1) * $self->LoInc;
     $self->{Lo_SHIFT} = 0 - $self->{eLo1};
 
     return;
@@ -333,6 +333,102 @@ sub error {
 }
 
 #--------------------------------------------------------------------------
+# Lo1( [val] )
+# Getter/setter for Lo1
+#--------------------------------------------------------------------------
+sub Lo1 {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{Lo1} = $flag if defined $flag;
+    return  $self->{Lo1};
+}
+
+#--------------------------------------------------------------------------
+# Lo2( [flag] )
+# Getter/setter for Lo2
+#--------------------------------------------------------------------------
+sub Lo2 {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{Lo2} = $flag if defined $flag;
+    return  $self->{Lo2};
+}
+
+#--------------------------------------------------------------------------
+# LoInc( [flag] )
+# Getter/setter for LoInc
+#--------------------------------------------------------------------------
+sub LoInc {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{LoInc} = $flag if defined $flag;
+    return  $self->{LoInc};
+}
+
+#--------------------------------------------------------------------------
+# La1( [flag] )
+# Getter/setter for La1
+#--------------------------------------------------------------------------
+sub La1 {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{La1} = $flag if defined $flag;
+    return  $self->{La1};
+}
+
+#--------------------------------------------------------------------------
+# La2( [flag] )
+# Getter/setter for La2
+#--------------------------------------------------------------------------
+sub La2 {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{La2} = $flag if defined $flag;
+    return  $self->{La2};
+}
+
+#--------------------------------------------------------------------------
+# LaInc( [flag] )
+# Getter/setter for LaInc
+#--------------------------------------------------------------------------
+sub LaInc {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{LaInc} = $flag if defined $flag;
+    return  $self->{LaInc};
+}
+
+#--------------------------------------------------------------------------
+# Ni( [flag] )
+# Getter/setter for Ni
+#--------------------------------------------------------------------------
+sub Ni {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{Ni} = $flag if defined $flag;
+    return  $self->{Ni};
+}
+
+#--------------------------------------------------------------------------
+# Nj( [flag] )
+# Getter/setter for Nj
+#--------------------------------------------------------------------------
+sub Nj {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{Nj} = $flag if defined $flag;
+    return  $self->{Nj};
+}
+
+#--------------------------------------------------------------------------
 # clearError()
 # set errors undef
 #--------------------------------------------------------------------------
@@ -357,8 +453,8 @@ sub validLo {
         $lo -= 360;
     }
  
-    $lo /= $self->{LoInc};
-    if ( $lo < 0 or $lo > $self->{Ni} ) {
+    $lo /= $self->LoInc;
+    if ( $lo < 0 or $lo > $self->Ni ) {
         return 0;
     }
 
@@ -467,20 +563,20 @@ sub lalo2offset {
 
     # First check if values are out of range...
     if ( $self->sn_scan_flag ) {
-        if ( $lat < $self->{La1} or $lat > $self->{La2} ) {
-            $self->error( "lalo2offset(): LAT >$lat< out of range $self->{La1} to $self->{La2}" );
+        if ( $lat < $self->La1 or $lat > $self->La2 ) {
+            $self->error( "lalo2offset(): LAT >$lat< out of range $self->La1 to $self->La2" );
             return -1;
         }
     }
     else {
-        if ( $lat > $self->{La1} or $lat < $self->{La2} ) {
-            $self->error( "lalo2offset(): LAT >$lat< out of range $self->{La1} to $self->{La2}" );
+        if ( $lat > $self->La1 or $lat < $self->La2 ) {
+            $self->error( "lalo2offset(): LAT >$lat< out of range $self->La1 to $self->La2" );
             return -1;
         }
     }
 
     if ( not $self->validLo( $long ) ) {
-        $self->error( "lalo2offset(): LONG: >$long< out of range $self->{Lo1} to $self->{Lo2}" );
+        $self->error( "lalo2offset(): LONG: >$long< out of range $self->Lo1 to $self->Lo2" );
         return -1;
     }
 
@@ -493,12 +589,12 @@ sub lalo2offset {
             $thislong -= 360;
         }
 
-        $out =  ( ( ( $lat - $self->{La1}  ) / $self->{LaInc} ) * $self->{Ni} ) 
-                + ( ($thislong ) / $self->{LoInc} );
+        $out =  ( ( ( $lat - $self->La1  ) / $self->LaInc ) * $self->Ni ) 
+                + ( ($thislong ) / $self->LoInc );
     }
     else {
-        $out =  ( ( $self->{La1} - $lat ) / $self->{LaInc} ) * $self->{Ni} 
-                + ( ($long - $self->{Lo1} ) / $self->{LoInc} );
+        $out =  ( ( $self->La1 - $lat ) / $self->LaInc ) * $self->Ni 
+                + ( ($long - $self->Lo1 ) / $self->LoInc );
     }
 
     return sprintf "%d", $out;
@@ -568,24 +664,24 @@ sub extractLaLo {
     }
 
     if ( $self->sn_scan_flag ) {
-        if (   $lat1 < $self->{La1} or $lat1 > $self->{La2}
-            or $lat2 < $self->{La1} or $lat2 > $self->{La2} )
+        if (   $lat1 < $self->La1 or $lat1 > $self->La2
+            or $lat2 < $self->La1 or $lat2 > $self->La2 )
         {
-            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->{La1} to $self->{La2}" );
+            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->La1 to $self->La2" );
             return;
         }
     }
     else {
-        if (   $lat1 > $self->{La1} or $lat1 < $self->{La2}
-            or $lat2 > $self->{La1}  or $lat2 < $self->{La2} )
+        if (   $lat1 > $self->La1 or $lat1 < $self->La2
+            or $lat2 > $self->La1  or $lat2 < $self->La2 )
         {
-            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->{La1} to $self->{La2}" );
+            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->La1 to $self->La2" );
             return;
         }
     }
 
     if ( not $self->validLo( $long1 ) or not $self->validLo( $long2 ) ) {
-        $self->error( "extractLaLo(): LONG: >$long1 or $long2 < out of range $self->{Lo1} to $self->{Lo2}" );
+        $self->error( "extractLaLo(): LONG: >$long1 or $long2 < out of range $self->Lo1 to $self->Lo2" );
         return;
     }
 
@@ -602,6 +698,11 @@ sub extractLaLo {
     for my $type ( @types ) {
         $record = $self->{catalog}->{$tm}->{$type};
 
+        if ( not defined $record ) {
+            $self->error( "extractLaLo(): Not a valid type: $type" );
+            return 1;
+        }
+
         my $tmp = $self->tempfile();
         my $cmd =
           "\"$LIB_DIR\"/wgrib.exe \"$self->{fileName}\" -d $record -nh -o $tmp";
@@ -609,8 +710,8 @@ sub extractLaLo {
         my $F = IO::File->new( $tmp ) or croak "Can't open temp file";
 
         $dump = "";
-        for ( $lo = $long1 ; $lo <= $long2 ; $lo += $self->{LoInc} ) {
-            for ( $la = $lat1 ; $la >= $lat2 ; $la -= $self->{LaInc} ) {
+        for ( $lo = $long1 ; $lo <= $long2 ; $lo += $self->LoInc ) {
+            for ( $la = $lat1 ; $la >= $lat2 ; $la -= $self->LaInc ) {
                 $offset = $self->lalo2offset( $la, $lo );
                 seek $F, $offset * 4, 0;
                 read $F, $dump, 4;
@@ -695,6 +796,11 @@ sub extract {
         }
  
         $record = $self->{catalog}->{$tm}->{$type};
+
+        if ( not defined $record ) {
+            $self->error( "extract(): Not a valid type: $type" );
+            return 1;
+        }
 
         my $tmp = $self->tempfile();
         $cmd = "\"$LIB_DIR\"/wgrib.exe \"$self->{fileName}\" -d $record -nh -o $tmp";

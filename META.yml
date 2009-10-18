@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Geo-ReadGRIB
-version:            0.983
+version:            0.985
 author:
     - NULL <frank.l.cox@gmail.com>
 license:            unknown

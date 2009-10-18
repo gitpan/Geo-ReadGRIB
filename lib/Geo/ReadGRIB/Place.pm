@@ -85,6 +85,11 @@ sub data {
     my $data = shift;
 
     $self->{data}->{$type} = $data if defined $data;
+
+    if ( not defined $self->{data}->{$type} ) {
+        warn "Place: Not a valid type: $type\n";
+    }
+
     return $self->{data}->{$type};
 }
 

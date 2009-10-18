@@ -62,7 +62,7 @@ ok($data->{$time}->{$lat}->{$long}->{$type} == 3.43)
 #test show() method
    
 my $show = $w->show();
- 
+#diag($show); 
 ok($show =~  /lat: 75.25 to 44.75/ and
    $show =~ /Sat Mar 11 12:00:00 2006 \(1142078400\)/) 
    or diag("show() did not return expected string");
