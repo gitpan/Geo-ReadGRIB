@@ -295,10 +295,11 @@ This documentation refers to Geo::ReadGRIB::PlaceIterator version 1.0
 
 A PlaceIterator objects let you iterate through places.
 
-Objects of this class are returned by the extractLaLo() method of a 
-Geo::ReadGRIB object. It contains data for one or more data types at one time
-for the rectangular area extracted. The locations are sorted first by latitude 
-and then by longitude. Methods are provided for sequential access to this data.
+Objects of this class are returned by the extractLaLo() or extract() method of a 
+Geo::ReadGRIB object. It contains data for one or more data types at one or more 
+times for the area extracted. The locations are sorted first by time
+then latitude and then by longitude. Methods are provided for sequential access 
+to this data.
 
 The first() method sets the iterator index to the most northwest (lat, long) 
 pair. The current() method returns a Place object for the current location.
@@ -331,10 +332,13 @@ dimensions for a GD::Image new() method.
 
 =head1 BUGS AND LIMITATIONS
 
+=head1 BUGS AND LIMITATIONS
 
-There are no known bugs in this module.
-Please report problems to Frank Cox, E<lt>frank.l.cox@gmail.comE<gt>
-Patches are welcome.
+There are no known bugs in this module. Please report problems through
+
+http://rt.cpan.org
+
+or contact Frank Cox, <frank.l.cox@gmail.com> Patches are welcome.
 
 =head1 AUTHOR
 

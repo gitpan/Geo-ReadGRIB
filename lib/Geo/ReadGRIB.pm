@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 0.98_50;
+our $VERSION = 1.0; # woo hoo!
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -562,21 +562,22 @@ sub lalo2offset {
     $self->clearError;
 
     # First check if values are out of range...
+    my ($lo1, $lo2, $la1, $la2) = ($self->Lo1, $self->Lo2, $self->La1, $self->La2, );
     if ( $self->sn_scan_flag ) {
         if ( $lat < $self->La1 or $lat > $self->La2 ) {
-            $self->error( "lalo2offset(): LAT >$lat< out of range $self->La1 to $self->La2" );
+            $self->error( "lalo2offset(): LAT >$lat< out of range $la1 to $la2" );
             return -1;
         }
     }
     else {
         if ( $lat > $self->La1 or $lat < $self->La2 ) {
-            $self->error( "lalo2offset(): LAT >$lat< out of range $self->La1 to $self->La2" );
+            $self->error( "lalo2offset(): LAT >$lat< out of range $la1 to $la2" );
             return -1;
         }
     }
 
     if ( not $self->validLo( $long ) ) {
-        $self->error( "lalo2offset(): LONG: >$long< out of range $self->Lo1 to $self->Lo2" );
+        $self->error( "lalo2offset(): LONG: >$long< out of range $lo1 to $lo2" );
         return -1;
     }
 
@@ -645,7 +646,7 @@ sub extractLaLo {
     my @times = sort keys %{ $self->{catalog} };
 
     # First see that requested values are in range...
-
+    my ($lo1, $lo2, $la1, $la2) = ($self->Lo1, $self->Lo2, $self->La1, $self->La2, );
     if ( not $lat1 >= $lat2 or not $long1 <= $long2 ) {
         $self->error( "ERROR extractLaLo() require: lat1 >= lat2 and long1 <= long2" );
         return;
@@ -667,7 +668,7 @@ sub extractLaLo {
         if (   $lat1 < $self->La1 or $lat1 > $self->La2
             or $lat2 < $self->La1 or $lat2 > $self->La2 )
         {
-            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->La1 to $self->La2" );
+            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $la1 to $la2" );
             return;
         }
     }
@@ -675,13 +676,13 @@ sub extractLaLo {
         if (   $lat1 > $self->La1 or $lat1 < $self->La2
             or $lat2 > $self->La1  or $lat2 < $self->La2 )
         {
-            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $self->La1 to $self->La2" );
+            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $la1 to $la2" );
             return;
         }
     }
 
     if ( not $self->validLo( $long1 ) or not $self->validLo( $long2 ) ) {
-        $self->error( "extractLaLo(): LONG: >$long1 or $long2 < out of range $self->Lo1 to $self->Lo2" );
+        $self->error( "extractLaLo(): LONG: >$long1 or $long2 < out of range $lo1 to $lo2" );
         return;
     }
 
@@ -1010,16 +1011,6 @@ Binary" format Weather data files.
 
 =head1 SYNOPSIS
 
-*****************************************************
-
-THIS IS A TEST VERSION WITH NEW SUPPORT CMS GRIBS 
-
-THERE ARE MANY CHANGES AND FULL TESTING HAS NOT BEEN DONE
-
-USE V0.98 FOR ANYTHING EXCEPT TESTING
-
-******************************************************
-
   use Geo::ReadGRIB;
   $w = new Geo::ReadGRIB "grib-file";
   
@@ -1064,19 +1055,27 @@ USE V0.98 FOR ANYTHING EXCEPT TESTING
 
 =head1 DESCRIPTION
 
-Geo::ReadGRIB is an object Perl module that provides read access to data
+Geo::ReadGRIB is an Perl module that provides read access to data 
 distributed in GRIB files. Specifically, I wrote it to access NOAA Wavewatch 
-III marine weather model forecasts which are packaged as GRIB. 
+III marine weather model forecasts. As of version 0.98_1 Geo::ReadGRIB is known to 
+support Canadian Meteorological Center's GEM model GRIB files. It may support
+many other GRIB variants which use a rectangular lat/long grid but they have not 
+been tested. Please notify the maintainers and let them know if it does or doesn't 
+support your files.
 
-This version introduces the Geo::ReadGRIB::PlaceIterator class. PlaceIterator
-objects are returned by extractLaLo() and can be used for an ordered traversal
-of the extracted data for a given time. This greatly simplifies map image 
-creation and other data analysis tasks. See L<Geo::ReadGRIB::PlaceIterator>
+Version 0.98 introduced the Geo::ReadGRIB::PlaceIterator class. PlaceIterator
+objects are returned by extractLaLo() and extract() and can be used for an 
+ordered traversal of the extracted data for a given time. This greatly simplifies 
+map image creation and other data analysis tasks. See L<Geo::ReadGRIB::PlaceIterator>
 documentation and demo programs in the examples directory.
 
 Wavewatch III GRIB's can currently be found under 
 
 ftp://polar.ncep.noaa.gov/pub/waves/
+
+CMC GRIB datasets currently listed at
+
+http://www.weatheroffice.gc.ca/grib/High-resolution_GRIB_e.html
 
 GRIB stands for "GRIdded Binary" and it's a format developed by the World
 Meteorological Organization (WMO) for the exchange of weather product 
@@ -1095,10 +1094,7 @@ and should install in the same location as ReadGRIB.pm. ReadGRIB will search
 for wgrib.exe at run time and die if it can't find it.
 
 wgrib.c is known to compile and install correctly with Geo::ReadGRIB on 
-FreeBSD, LINUX and Windows. In all cases the compiler was gcc and on Windows 
-ActivePerl and nmake or Straberry Perl and dmake were used and the CC=gcc option 
-was used with Makefile.PL I've also been able to compile wgrib.c with gcc on 
-Solaris Sparc and i386.
+all common platforms. See the CPAN Testers reports for this module.
 
 wgrib.exe creates a file called wgrib.tmp.XXXXXXXXX in the local directory where 
 the X's are random chars. The id that runs a program using Geo::ReadGRIB needs
@@ -1199,29 +1195,27 @@ Extracts forecast data for given type and location. I<time> is optional.
 Extracts data for all times in file unless a specific time is given 
 in epoch seconds.
 
-lat and long will be in the range -90 to 90 degrees lat and 0 to 359 degrees
-long. Longitude in GRIB files is 0 to 359 east. If you have degrees in 
-longitude west you will need to convert it first. If lat or long is out of
-range for the current file an error will be set ( see getError() ).
+lat and long will be in the range 90 to -90 degrees lat and 0 to 360 degrees
+long. If lat or long is out of range for the current file an error will be 
+set ( see getError() ).
 
 time will be in epoch seconds as returned, for example, by Time::Local. If the 
 time requested is in the range of times in the file but not one of the exact 
 times in the file, the nearest existing time will be used. An error will be set
 if time is out of range.
 
+data_type will be one of the data types in the GRIB file or an error is set.
+
 Returns a L<Geo::ReadGRIB::PlaceIterator> object containing the extracted data
 which can be used to iterate through the data in order sorted by lat and then long.
 
 Extracted data is also retained in the ReadGRIB object data structure.
 
-
-type will be one of the data types in the data or an error is set.
-
 =item $object->getError();
 
 Returns string messages for the last error set. If no error is set getError()
 returns undef. Only the most recent error will be show. It's good practice to 
-check errors after actions, at least while developing applications.
+check errors after actions, especially while developing applications.
 
 =item $object->getDataHash();
 
@@ -1244,6 +1238,14 @@ getCatalogVerbose() is also DEPRECATED as redundent and now just calls
 getFullCatalog(). and sets an error.    
 
 =back
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module. Please report problems through
+
+http://rt.cpan.org
+
+or contact Frank Cox, <frank.l.cox@gmail.com> Patches are welcome.
 
 =head1 SEE ALSO
 

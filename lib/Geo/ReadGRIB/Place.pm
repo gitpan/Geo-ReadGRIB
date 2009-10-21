@@ -138,9 +138,9 @@ a call to Geo::ReadGRIB::PlaceIterator::Current()
 
 Objects of this class are returned by the current() method of a 
 PlaceIterator object which itself has been returned by the 
-extractLaLo() method of a Geo::ReadGRIB object. A place object
-has a unique latitude and longitude for one time and has data for 
-one or more data types. 
+extractLaLo() or extract() methods of a Geo::ReadGRIB object. A place 
+object has a unique latitude and longitude for one time and has data 
+for one or more data types. 
 
 =head1 METHODS
 
@@ -163,9 +163,11 @@ accessed by the following methods.
 
 =head1 BUGS AND LIMITATIONS
 
-There are no known bugs in this module.
-Please report problems to Frank Cox, E<lt>frank.l.cox@gmail.comE<gt>
-Patches are welcome.
+There are no known bugs in this module. Please report problems through
+
+http://rt.cpan.org
+
+or contact Frank Cox, <frank.l.cox@gmail.com> Patches are welcome.
 
 =head1 AUTHOR
 
