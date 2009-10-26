@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.0; # woo hoo!
+our $VERSION = 1_1; # woo hoo!
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -1094,7 +1094,7 @@ and should install in the same location as ReadGRIB.pm. ReadGRIB will search
 for wgrib.exe at run time and die if it can't find it.
 
 wgrib.c is known to compile and install correctly with Geo::ReadGRIB on 
-all common platforms. See the CPAN Testers reports for this module.
+all common platforms. See the CPAN Testers reports for this module for details.
 
 wgrib.exe creates a file called wgrib.tmp.XXXXXXXXX in the local directory where 
 the X's are random chars. The id that runs a program using Geo::ReadGRIB needs

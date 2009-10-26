@@ -1,12 +1,12 @@
 Geo-ReadGRIB
 ============
 
-Geo::ReadGRIB is an object Perl module that provides read access to data 
+Geo::ReadGRIB is an Perl module that provides read access to data 
 distributed in GRIB files. Specifically, I wrote it to access NOAA Wavewatch 
-III marine weather model forecasts and as of version 0.98_1 it is known to 
-support Canadian Meteorological Centre's GEM model GRIB files. It will support
+III marine weather model forecasts. As of version 0.98_1 Geo::ReadGRIB is known to 
+support Canadian Meteorological Center's GEM model GRIB files. It may support
 many other GRIB variants which use a rectangular lat/long grid but they have not 
-been tested. Notify the maintainers and let them know if it does or doesn't 
+been tested. Please notify the maintainers and let them know if it does or doesn't 
 support your files.
 
 wgrib.c
@@ -17,9 +17,9 @@ when you make the module. The resulting executable is named wgrib.exe and
 should install in the same location as ReadGRIB.pm. ReadGRIB.pm will search 
 for wgrib.exe at run time and die if it can't find it.
 
-wgrib.c is known to compile and install correctly with Geo::ReadGRIB on FreeBSD, 
-LINUX and Windows. In all cases the compiler was gcc and on Windows ActivePerl 
-and nmake were used and the CC=gcc option was used with Makefile.PL
+wgrib.c is known to compile and install correctly with Geo::ReadGRIB on 
+all common platforms. See the CPAN Testers reports for this module for details.
+
 
 I've also been able to compile wgrib.c with gcc on Solaris Sparc and i386.
 

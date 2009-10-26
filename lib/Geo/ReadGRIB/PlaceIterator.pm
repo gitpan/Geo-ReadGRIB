@@ -332,8 +332,6 @@ dimensions for a GD::Image new() method.
 
 =head1 BUGS AND LIMITATIONS
 
-=head1 BUGS AND LIMITATIONS
-
 There are no known bugs in this module. Please report problems through
 
 http://rt.cpan.org

@@ -59,7 +59,8 @@ ok( not $w->getError ) or
 
 while ( (my $place = $plit->current and $plit->next ) 
         and ( my $place2 = $plit2->current and $plit2->next ) ) {
+
     ok( $place->data( 'WIND' ) == $place2->data( 'WIND' ) )
-        or diag( "" );
+        or diag("Not equal for lat ",$place->lat," got: ",$place->data('WIND')," and ",$place2->data('WIND') );
 }
 
