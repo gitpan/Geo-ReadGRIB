@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 1_1; # woo hoo!
+our $VERSION = 1.0_1; # woo hoo!
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -598,7 +598,8 @@ sub lalo2offset {
                 + ( ($long - $self->Lo1 ) / $self->LoInc );
     }
 
-    return sprintf "%d", $out;
+    return int( $out );
+#    return sprintf "%d", $out;
 }
 
 #--------------------------------------------------------------------------
@@ -714,6 +715,8 @@ sub extractLaLo {
         for ( $lo = $long1 ; $lo <= $long2 ; $lo += $self->LoInc ) {
             for ( $la = $lat1 ; $la >= $lat2 ; $la -= $self->LaInc ) {
                 $offset = $self->lalo2offset( $la, $lo );
+#                $la = sprintf "%.4f", $la;
+#                $lo = sprintf "%.4f", $lo;
                 seek $F, $offset * 4, 0;
                 read $F, $dump, 4;
                 $dump = unpack "f", $dump;
