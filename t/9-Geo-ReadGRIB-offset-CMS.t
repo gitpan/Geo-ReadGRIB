@@ -11,7 +11,7 @@
 BEGIN{ unshift @INC, '.'}
 
 
-use Test::More tests => 305;
+use Test::More tests => 7;
 use strict;
 use warnings;
 
@@ -41,13 +41,13 @@ $w->getFullCatalog();
 ok(  not $w->getError ) or 
     diag( $w->getError );
 
-my $plit = $w->extractLaLo( "WIND", 90, -180, -90, -180, 1255046400 );
+my $plit = $w->extract( "WIND", 89.4, -180, 1255046400 );
 print $w->getError, "\n" if defined $w->getError;
 
 ok( not $w->getError ) or
     diag( $w->getError );
 
-my $plit2 = $w->extractLaLo( "WIND", 90, 180, -90, 180, 1255046400 );
+my $plit2 = $w->extract( "WIND", 89.4, 180, 1255046400 );
 print $w->getError, "\n" if defined $w->getError;
 
 ok( not $w->getError ) or
@@ -61,6 +61,15 @@ while ( (my $place = $plit->current and $plit->next )
         and ( my $place2 = $plit2->current and $plit2->next ) ) {
 
     ok( $place->data( 'WIND' ) == $place2->data( 'WIND' ) )
-        or diag("Not equal with extractLaLo() for lat ",$place->lat," got: ",$place->data('WIND')," and ",$place2->data('WIND') );
+        or diag("Not equal on extract() for lat ",$place->lat," got: ",$place->data('WIND')," and ",$place2->data('WIND') );
 }
+
+my $offset1 = $w->lalo2offset( 89.4, -180 );
+my $offset2 = $w->lalo2offset( 89.4, 180 );
+
+ok( $offset1 == 179699 ) or
+    diag( "lalo2offset( 89.4, -180 ) should be 179699 not $offset1");
+
+ok( $offset2 == 180299 ) or
+    diag( "lalo2offset( 89.4, 180 ) should be 180299 not $offset2");
 
