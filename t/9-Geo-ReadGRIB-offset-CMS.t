@@ -11,7 +11,7 @@
 BEGIN{ unshift @INC, '.'}
 
 
-use Test::More tests => 303;
+use Test::More tests => 305;
 use strict;
 use warnings;
 
@@ -49,6 +49,16 @@ for ( my $j = 0; $j <= 300; $j++ ) {
         diag( "lalo2offset( $la, $lo) gives $offset, should be $wegot[$j] ");
 }
 
-my $calc = (((89.4 - -90)/.6) * 601) + (360 /.6);
-ok( $calc == 180299 ) or
-    diag ("((89.4 - -90)/.6) * 601) + (360 /.6) = 180299 not $calc  ");
+my $calc = (((63 - -90)/.6) * 601) + (360 /.6);
+ok( $calc == 153855 ) or
+    diag ("raw ((89.4 - -90)/.6) * 601) + (360 /.6) = 153855 not $calc  ");
+
+my $calcPC = sprintf "%d", $calc;
+ok( $calcPC == 153855 ) or
+    diag ("sprintf %d, ((89.4 - -90)/.6) * 601) + (360 /.6) = 153855 not $calcPC  ");
+
+my $calcInt = int( $calc );
+ok( $calcInt == 153855 ) or
+    diag ("int ((89.4 - -90)/.6) * 601) + (360 /.6) = 153855 not $calcInt  ");
+
+
