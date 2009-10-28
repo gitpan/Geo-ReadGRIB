@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.0_2;
+our $VERSION = 1.0_3;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -584,8 +584,10 @@ sub lalo2offset {
     my $out;
     
     if ( $self->sn_scan_flag ) {
-        $thislong = $long + $self->{Lo_SHIFT};
 
+        # shift long east until Lo1 = 0 and make sure any long
+        # > 360 degrees is moved back into the range of 0 - 360
+        $thislong = $long + $self->{Lo_SHIFT};
         if ( $thislong > 360 ) {
             $thislong -= 360;
         }
