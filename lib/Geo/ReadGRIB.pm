@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.0_4;
+our $VERSION = 1.0_5;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -831,7 +831,7 @@ sub extract {
 }
 
 #--------------------------------------------------------------------------
-# fineNearestTime( time )
+# findNearestTime( time )
 # 
 # Find nearest time in catalog...
 #--------------------------------------------------------------------------
