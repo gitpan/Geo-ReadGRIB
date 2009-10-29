@@ -11,7 +11,7 @@
 BEGIN{ unshift @INC, '.'}
 
 
-use Test::More tests => 6;
+use Test::More tests => 9;
 use strict;
 use warnings;
 use Config;
@@ -56,7 +56,16 @@ ok( $calcInt == 153855 ) or
     diag ("int (($lat - -90)/.6) * 601) + (360 /.6) = 153855 not $calcInt  ");
 
 $calc = 153 / .6;
-ok( $calc = 255 ) or diag("153 / .6 = 255 not $calc");
+ok( $calc == 255 ) or diag("153 / .6 = 255 not $calc");
 
 $calc = (153 / .6) * 601;
-ok( $calc = 153255 ) or diag("153 / .6 = 153255 not $calc");
+ok( $calc == 153255 ) or diag("153 / .6 * 600 = 153255 not $calc");
+
+$calc = ($lat - -90)/.6;
+ok( $calc == 255 ) or diag("($lat - -90)/.6 = 255 not $calc");
+
+$calc = ((($lat - -90)/.6) * 601);
+ok( $calc == 153255 ) or diag("((($lat - -90)/.6) * 601) = 153255 not $calc");
+
+$calc = (360 / .6);
+ok( $calc == 600 ) or diag("360 / .6 = 600 not $calc");
