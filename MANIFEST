@@ -12,7 +12,6 @@ t/6-Geo-ReadGRIB-Data-CMC.t
 t/7-Geo-ReadGRIB-Iter-CMS.t
 t/8-Geo-ReadGRIB-Dateline-CMS.t
 t/9-Geo-ReadGRIB-offset-CMS.t
-t/10-Geo-ReadGRIB-uselongdouble.t
 lib/Geo/ReadGRIB.pm
 lib/Geo/ReadGRIB/PlaceIterator.pm
 lib/Geo/ReadGRIB/Place.pm

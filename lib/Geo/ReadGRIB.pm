@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.0_7;
+our $VERSION = 1.1;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -600,8 +600,6 @@ sub lalo2offset {
                 + ( ($long - $self->Lo1 ) / $self->LoInc );
     }
  
-#    return int( $out );
-#    return sprintf "%d", $out;
     return sprintf "%.0f", sprintf "%.6f", $out;
 }
 
