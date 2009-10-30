@@ -11,7 +11,7 @@
 BEGIN{ unshift @INC, '.'}
 
 
-use Test::More tests => 9;
+use Test::More tests => 4;
 use strict;
 use warnings;
 use Config;
@@ -44,8 +44,6 @@ diag("This platform includes nvtype $nvtype, nvsize $nvsize and will fail some t
 
 my $lat = 63;
 my $calc = ((($lat - -90)/.6) * 601) + (360 /.6);
-ok( $calc == 153855 ) or
-    diag ("raw (($lat - -90)/.6) * 601) + (360 /.6) = 153855 not $calc  ");
 
 my $calcPC = sprintf "%d", $calc;
 ok( $calcPC == 153855 ) or
@@ -55,17 +53,8 @@ my $calcInt = int( $calc );
 ok( $calcInt == 153855 ) or
     diag ("int (($lat - -90)/.6) * 601) + (360 /.6) = 153855 not $calcInt  ");
 
-$calc = 153 / .6;
-ok( $calc == 255 ) or diag("153 / .6 = 255 not $calc");
+$calcPC = sprintf "%.0f", $calc;
+ok( $calcPC == 153855 ) or
+    diag ("sprintf %.0f, (($lat - -90)/.6) * 601) + (360 /.6) = 153855 not $calcPC  ");
 
-$calc = (153 / .6) * 601;
-ok( $calc == 153255 ) or diag("153 / .6 * 600 = 153255 not $calc");
 
-$calc = ($lat - -90)/.6;
-ok( $calc == 255 ) or diag("($lat - -90)/.6 = 255 not $calc");
-
-$calc = ((($lat - -90)/.6) * 601);
-ok( $calc == 153255 ) or diag("((($lat - -90)/.6) * 601) = 153255 not $calc");
-
-$calc = (360 / .6);
-ok( $calc == 600 ) or diag("360 / .6 = 600 not $calc");

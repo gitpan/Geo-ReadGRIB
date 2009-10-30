@@ -51,8 +51,8 @@ for ( 1 .. 3 ) {
     $tpit->next;
 }
 
-ok( $tpit->current->data('WIND') == 12.44) or
-    diag( "4th data value should be 12.44 not ", $tpit->current->data('WIND') );
+ok( $tpit->current->data('WIND') == 14.37) or
+    diag( "4th data value should be 14.37 not ", $tpit->current->data('WIND') );
 
 
 ok ( $tpit->{count_of_places} == 4 ) or
