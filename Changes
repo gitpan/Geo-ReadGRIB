@@ -10,8 +10,8 @@ Revision history for Perl extension Geo::ReadGRIB.
           temp filed so had to change Perl version to "use 5.6.1"
         - Each method that uses wgrib.exe now uses tempfile() to
           name temp files and then removes them when done. 
-	- Changed tests to use full path to test GRIB file
-	- POD doc tweaks	 
+        - Changed tests to use full path to test GRIB file
+        - POD doc tweaks	 
 
 0.50  June 12
 
@@ -49,3 +49,21 @@ Revision history for Perl extension Geo::ReadGRIB.
         - Some refactoring and new tests. 
         - extract() now returns a PlaceIterator object like extractLaLo
           does.  
+
+1.0   Oct 2009
+
+        - Some documentation changes and minor adjustments. Verification
+          of new GRIB type support justified finally moving to v1.0
+
+1.1   Oct 2009
+
+        - Bug fix release for rt.cpan.org ticket #50820 where new test
+          fails for some values only on 64bit uselongdouble Perl 
+
+1.2   Nov 2009
+
+        - Improved extractLaLo() by reading all rows from (la1, lo1) to
+          (la2, lo2) into scalar in one read. This will get more data 
+          than needed in many cases, but the temporary increase in memory
+          footprint will typically be less than a megabyte. Speed increases
+          grater that %35 were measured on large extracts. 

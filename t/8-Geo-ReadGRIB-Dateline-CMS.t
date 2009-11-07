@@ -54,7 +54,7 @@ ok( not $w->getError ) or
     diag( $w->getError );
 
 #use Data::Dumper; 
-#print STDERR Dumper $tpit;
+#print STDERR Dumper $plit;
 
 
 while ( (my $place = $plit->current and $plit->next ) 

@@ -14,7 +14,7 @@ use strict;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.1;
+our $VERSION = 1.2;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -695,8 +695,9 @@ sub extractLaLo {
         $self->findNearestTime( $time );
     }
 
-    my ( $offset, $dump, $record, $lo, $la );
+    my ( $dtaLength, $fileDump, $offset, $dump, $record, $lo, $la );
     my $tm = $self->{THIS_TIME};
+
 
     for my $type ( @types ) {
         $record = $self->{catalog}->{$tm}->{$type};
@@ -707,21 +708,25 @@ sub extractLaLo {
         }
 
         my $tmp = $self->tempfile();
-        my $cmd =
-          "\"$LIB_DIR\"/wgrib.exe \"$self->{fileName}\" -d $record -nh -o $tmp";
+        my $cmd = "\"$LIB_DIR\"/wgrib.exe \"$self->{fileName}\" -d $record -nh -o $tmp";
         my $res = qx($cmd);
         my $F = IO::File->new( $tmp ) or croak "Can't open temp file";
+
+        # Make sure first offset is smallest for any scanning order 
+        my ( $offsetFst, $offsetLst ) = sort {$a <=> $b} ( 
+            $self->lalo2offset($lat1, $long1),  $self->lalo2offset($lat2, $long2) );
+        
+        $dtaLength = ($offsetLst - $offsetFst +1) * 4;        
+        seek $F, $offsetFst * 4, 0;
+        read $F, $fileDump, $dtaLength; 
 
         $dump = "";
         for ( $lo = $long1 ; $lo <= $long2 ; $lo += $self->LoInc ) {
             for ( $la = $lat1 ; $la >= $lat2 ; $la -= $self->LaInc ) {
-                $offset = $self->lalo2offset( $la, $lo );
-#                $la = sprintf "%.4f", $la;
-#                $lo = sprintf "%.4f", $lo;
-                seek $F, $offset * 4, 0;
-                read $F, $dump, 4;
-                $dump = unpack "f", $dump;
-                $dump = sprintf "%.2f", $dump;
+                $offset = $self->lalo2offset( $la, $lo ) - $offsetFst;
+                $dump = substr $fileDump, $offset * 4, 4;
+                $dump = sprintf "%.2f", unpack "f", $dump;
+                $dump = 0 if $dump eq '';
                 $dump = "UNDEF" if $dump > 999900000000000000000;
                 print gmtime($tm) . ": $self->{v_catalog}->{$type}  $dump\n"
                   if $self->{DEBUG};
@@ -731,6 +736,7 @@ sub extractLaLo {
         }
         close $F;
         unlink $tmp;
+        undef $fileDump;
     }
 
     return $plit;
@@ -1238,14 +1244,17 @@ getCatalog() is DEPRECATED and no longer does anything but set an error.
 It's function of Getting the critical offset index for each data type and time 
 in the file is now done during object creation.
 
-getCatalogVerbose() is also DEPRECATED as redundent and now just calls 
+getCatalogVerbose() is also DEPRECATED as redundant and now just calls 
 getFullCatalog(). and sets an error.    
 
 =back
 
 =head1 BUGS AND LIMITATIONS
 
-There are no known bugs in this module. Please report problems through
+There are no known bugs in this module version. Geo::ReadGRIB versions before
+v1.1 are known to give results that are sometimes off by one LoInc west or 
+east, only on 64bit Perl where nvtype='long double'. V1.1 and above will not
+exhibit this bug. Please report problems through
 
 http://rt.cpan.org
 
