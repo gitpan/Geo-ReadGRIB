@@ -149,6 +149,8 @@ accessed by the following methods.
 
 =over 4
 
+=item $object->new;
+
 =item $object->thisTime;
 
 =item $object->lat;

@@ -18,10 +18,9 @@ should install in the same location as ReadGRIB.pm. ReadGRIB.pm will search
 for wgrib.exe at run time and die if it can't find it.
 
 wgrib.c is known to compile and install correctly with Geo::ReadGRIB on 
-all common platforms. See the CPAN Testers reports for this module for details.
+all common platforms where gcc is used. See the CPAN Testers reports for 
+this module for details.
 
-
-I've also been able to compile wgrib.c with gcc on Solaris Sparc and i386.
 
 INSTALLATION
 

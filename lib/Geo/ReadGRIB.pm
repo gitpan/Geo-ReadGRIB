@@ -11,10 +11,11 @@ package Geo::ReadGRIB;
 
 use 5.006_001;
 use strict;
+use warnings;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.2;
+our $VERSION = 1.21;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -439,6 +440,31 @@ sub clearError {
 
 
 #--------------------------------------------------------------------------
+# validLa( lat )
+#
+# check if lats are in range and return true if they arr, else false
+#--------------------------------------------------------------------------
+sub validLa {
+
+    my $self = shift;
+    my $lat  = shift;
+
+    if  ( $self->sn_scan_flag ) {
+        if ( $lat < $self->La1 or $lat > $self->La2 ) {
+            return 0;
+        }
+    }
+    else {
+        if ( $lat > $self->La1 or $lat < $self->La2 ) {
+            return 0;
+        }
+    }
+
+
+    return 1;
+}
+
+#--------------------------------------------------------------------------
 # validLo( 1ong )
 #
 # check that longs are in range and return true if they are, else false.
@@ -448,14 +474,21 @@ sub validLo {
     my $self = shift;
     my $lo   = shift;
 
-    $lo += $self->{Lo_SHIFT};
-    if ( $lo > 360 ) {
-        $lo -= 360;
-    }
+    if  ( $self->sn_scan_flag ) {
+        $lo += $self->{Lo_SHIFT};
+        if ( $lo > 360 ) {
+            $lo -= 360;
+        }
  
-    $lo /= $self->LoInc;
-    if ( $lo < 0 or $lo > $self->Ni ) {
-        return 0;
+        $lo /= $self->LoInc;
+        if ( $lo < 0 or $lo > $self->Ni ) {
+            return 0;
+        }
+    }
+    else {
+        if ( $lo < $self->Lo1 or $lo > $self->Lo2 ) {
+            return 0;
+        }
     }
 
     return 1;
@@ -557,30 +590,8 @@ sub lalo2offset {
 
     
     my $thislong = 0;
-#    $long += $self->{Lo_SHIFT};
 
     $self->clearError;
-
-    # First check if values are out of range...
-    my ($lo1, $lo2, $la1, $la2) = ($self->Lo1, $self->Lo2, $self->La1, $self->La2, );
-    if ( $self->sn_scan_flag ) {
-        if ( $lat < $self->La1 or $lat > $self->La2 ) {
-            $self->error( "lalo2offset(): LAT >$lat< out of range $la1 to $la2" );
-            return -1;
-        }
-    }
-    else {
-        if ( $lat > $self->La1 or $lat < $self->La2 ) {
-            $self->error( "lalo2offset(): LAT >$lat< out of range $la1 to $la2" );
-            return -1;
-        }
-    }
-
-    if ( not $self->validLo( $long ) ) {
-        $self->error( "lalo2offset(): LONG: >$long< out of range $lo1 to $lo2" );
-        return -1;
-    }
-
     my $out;
     
     if ( $self->sn_scan_flag ) {
@@ -666,21 +677,9 @@ sub extractLaLo {
         return;
     }
 
-    if ( $self->sn_scan_flag ) {
-        if (   $lat1 < $self->La1 or $lat1 > $self->La2
-            or $lat2 < $self->La1 or $lat2 > $self->La2 )
-        {
-            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $la1 to $la2" );
-            return;
-        }
-    }
-    else {
-        if (   $lat1 > $self->La1 or $lat1 < $self->La2
-            or $lat2 > $self->La1  or $lat2 < $self->La2 )
-        {
-            $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $la1 to $la2" );
-            return;
-        }
+    if ( not $self->validLa($lat1) or not $self->validLa($lat2) ) {
+        $self->error( "extractLaLo(): LAT >$lat1 or $lat2< out of range $la1 to $la2" );
+        return;
     }
 
     if ( not $self->validLo( $long1 ) or not $self->validLo( $long2 ) ) {
@@ -760,6 +759,18 @@ sub extract {
     my $lat  = shift;
     my $long = shift;
     my $time = shift;
+
+    # First see that requested values are in range...
+    my ($lo1, $lo2, $la1, $la2) = ($self->Lo1, $self->Lo2, $self->La1, $self->La2, );
+    if ( not $self->validLa($lat) ) {
+        $self->error( "extract(): LAT >$lat< out of range $la1 to $la2" );
+        return;
+    }
+
+    if ( not $self->validLo($long) ) {
+        $self->error( "extract(): LONG: >$long< out of range $lo1 to $lo2" );
+        return;
+    }    
 
     my $offset = $self->lalo2offset( $lat, $long );
 
@@ -1177,17 +1188,17 @@ descriptions (if getFullCatalog() has been run).
 
 =item $plit = $object->extractLaLo([data_type, ...], lat1, long1, lat2, long2, time);
 
-Extracts forecast data for a given type and time and data type(s) for a range of 
+Extracts forecast data for a given time and data type(s) for a range of 
 locations. The locations will be all (lat, long) points in the GRIB file inside the 
 rectangular area defined by (lat1, long1) and (lat2, long2) where lat1 >= lat2
 and long1 <= long2. That is, lat1 is north or lat2 and long1 is west of long2
-(or is the same as...)
+(or equal to...)
 
 data_type is either a data type name as a string of a list of data name strings
 as an array reference. 
 
 Time will be in epoch seconds as returned, for example, by 
-Time::Local. If the time requested is in the range of times in the file but not 
+Time::Local. If the time requested, is in the range of times in the file, but not 
 one of the exact times in the file, the nearest existing time will be used. An 
 error will be set if time is out of range.
 
@@ -1210,7 +1221,7 @@ long. If lat or long is out of range for the current file an error will be
 set ( see getError() ).
 
 time will be in epoch seconds as returned, for example, by Time::Local. If the 
-time requested is in the range of times in the file but not one of the exact 
+time requested is in the range of times in the file, but not one of the exact 
 times in the file, the nearest existing time will be used. An error will be set
 if time is out of range.
 
@@ -1236,6 +1247,12 @@ The hash structure is
 
    $d->{time}->{lat}->{long}->{type}
 
+=back
+
+=head1 DEPRECATED METHODS
+
+=over
+
 =item $object->getCatalog() DEPRECATED; 
 
 =item $object->getCatalogVerbose() DEPRECATED;
@@ -1249,12 +1266,67 @@ getFullCatalog(). and sets an error.
 
 =back
 
+=head1 PRIVATE METHODS
+
+The following  are not public methods and may be removed or changed in
+future releases. Do not use these in production code.
+
+=over
+
+=item La1()
+
+=item La2()
+
+=item Lo1()
+
+=item Lo2()
+
+=item LaInc()
+
+=item LoInc()
+
+=item Ni()
+
+=item Nj()
+
+=item adjustLong()
+
+=item calInc()
+
+=item clearError()
+
+=item dumpit()
+
+=item error()
+
+=item findNearestTime()
+
+=item lalo2offset()
+
+=item m2ft()
+
+=item openGrib()
+
+=item parseGDS()
+
+=item sn_scan_flag()
+
+=item tempfile()
+
+=item toDecimal()
+
+=item validLo()
+
+=item validLa()
+
+=back
+
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module version. Geo::ReadGRIB versions before
-v1.1 are known to give results that are sometimes off by one LoInc west or 
-east, only on 64bit Perl where nvtype='long double'. V1.1 and above will not
-exhibit this bug. Please report problems through
+1.1 are known to give results that are sometimes off by one LoInc west or 
+east, only on 64bit Perl where nvtype='long double'. Geo::ReadGRIB 1.1 and 
+above will not exhibit this bug. Please report problems through
 
 http://rt.cpan.org
 

@@ -7,7 +7,7 @@
 BEGIN{ unshift @INC, '.'}
 
 
-use Test::More tests => 5;
+use Test::More tests => 7;
 
 
 
@@ -42,6 +42,9 @@ print $w->getError, "\n" if defined $w->getError;
 ok( not $w->getError ) or
     diag( $w->getError );
 
+ok( not defined $tpit->isSorted ) or
+    diag( "PlaceIterator data should not be sorted at this point" );
+
 use Data::Dumper; 
 $tpit->first;
 for ( 1 .. 4 ) {
@@ -51,6 +54,8 @@ for ( 1 .. 4 ) {
 ok( $tpit->current->data('HTSGW') == 2.53) or
     diag( "5th data value should be 2.53" );
 
+ok( $tpit->isSorted ) or
+    diag( "PlaceIterator data should be sorted at this point" );
 
 ok ( $tpit->{count_of_places} == 15 ) or
     diag( "count_of_places should be 15" );

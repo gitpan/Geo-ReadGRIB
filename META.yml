@@ -1,9 +1,10 @@
 --- #YAML:1.0
 name:               Geo-ReadGRIB
-version:            1.2
+version:            1.21
+abstract:           Perl extension that gives read access to GRIB weather data files
 author:
-    - NULL <frank.l.cox@gmail.com>
-license:            unknown
+    - Frank Cox <frank.l.cox@gmail.com>
+license:            perl
 distribution_type:  module
 configure_requires:
     ExtUtils::MakeMaker:  0

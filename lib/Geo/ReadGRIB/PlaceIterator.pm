@@ -328,6 +328,10 @@ dimensions for a GD::Image new() method.
 
 =item $y = $object->numLong;
 
+=item $y = $object->addData;
+
+=item $y = $object->isSorted;
+
 =back
 
 =head1 BUGS AND LIMITATIONS

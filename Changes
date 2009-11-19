@@ -41,8 +41,8 @@ Revision history for Perl extension Geo::ReadGRIB.
 0.99  Oct 2009
 
         - A major bug fix release to support Canadian high res gribs.
-        - Add a check for GDS byte 6 = 0. Croak if not (yet) supported
-          lat/long grid
+        - Add a check for GDS byte 6 = 0. Croak if a not (yet) supported
+          grid other than lat/long.
         - Discover scan mode from byte 28. Many changes to support south
           to north scanning. Will also print advisory messages if it 
           detects as yet unsupported modes.
@@ -63,7 +63,14 @@ Revision history for Perl extension Geo::ReadGRIB.
 1.2   Nov 2009
 
         - Improved extractLaLo() by reading all rows from (la1, lo1) to
-          (la2, lo2) into scalar in one read. This will get more data 
+          (la2, lo2) into a scalar in one read. This will get more data 
           than needed in many cases, but the temporary increase in memory
           footprint will typically be less than a megabyte. Speed increases
           grater that %35 were measured on large extracts. 
+
+1.21  Nov 2009
+
+        - Add tests and doc to improve "kwalitee" (already 104.35%)
+        - Add and improve range testing methods in accord with DRY 
+          principle and to remove range test from lalo2offset which 
+          is called many times when using extractLaLo()
