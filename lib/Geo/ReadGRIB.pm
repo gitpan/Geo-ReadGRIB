@@ -15,7 +15,7 @@ use warnings;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.21;
+our $VERSION = 1.22;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -113,14 +113,8 @@ sub openGrib {
     }
 
     foreach ( sort keys %head ) {
-
         #     print " $_: $head{$_}\n";
         $self->{$_} = $head{$_};
-    }
-
-    foreach ( keys %head ) {
-
-        #     $self->{$_} = $head{$_};
     }
 
 
@@ -188,13 +182,26 @@ sub _getCatalog {
         croak "Error in \$cmd: $?";
     }
 
-    my @line;
+    my $timeRange = $self->TR;
+
+    my ( @line, $offset );
     foreach (@cat) {
         @line = split /:/;
         $line[8] =~ s/P1=//;
-        $line[8] = $line[8] * 3600 + $self->{TIME};
-        $self->{LAST_TIME} = $line[8] if $line[8] > $self->{LAST_TIME};
-        $self->{catalog}->{ $line[8] }->{ $line[3] } = $line[0];
+        $line[9] =~ s/P2=//;
+        if ( $timeRange == 0 ) {
+            $offset = $line[8];
+        }
+        elsif ( $timeRange == 10 ) {
+            $offset = ($line[8] * 256) + $line[9];
+        }
+        else {
+            croak "Time Range flag $timeRange not yet supported. Please ask the Geo::ReadGRIB maintainer to add support for GRIB files like this";
+        }
+
+        $offset = $offset * 3600 + $self->{TIME};
+        $self->{LAST_TIME} = $offset if $offset > $self->{LAST_TIME};
+        $self->{catalog}->{ $offset }->{ $line[3] } = $line[0];
     }
 
     return;
@@ -310,121 +317,100 @@ sub parseGDS {
 }
 
 #--------------------------------------------------------------------------
-# sn_scan_flag( [flag] )
-# Getter/setter for flag
+# sn_scan_flag( [flag] ) - getter/setter
 #--------------------------------------------------------------------------
 sub sn_scan_flag {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{SN_SCAN_FLAG} = $flag if defined $flag;
     return  $self->{SN_SCAN_FLAG};
 }
 
 #--------------------------------------------------------------------------
-# error( [error message] )
-# Getter/setter for errors
+# error( [error message] ) - getter/setter for errors
 #--------------------------------------------------------------------------
 sub error {
-    my $self = shift;
-    my $error = shift;
-
+    my ( $self, $error ) = @_;
     $self->{ERROR} = $error if defined $error;
     return  $self->{ERROR};
 }
 
 #--------------------------------------------------------------------------
-# Lo1( [val] )
-# Getter/setter for Lo1
+# Lo1( [val] ) - Getter/setter for Lo1
 #--------------------------------------------------------------------------
 sub Lo1 {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{Lo1} = $flag if defined $flag;
     return  $self->{Lo1};
 }
 
 #--------------------------------------------------------------------------
-# Lo2( [flag] )
-# Getter/setter for Lo2
+# Lo2( [flag] ) - Getter/setter for Lo2
 #--------------------------------------------------------------------------
 sub Lo2 {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{Lo2} = $flag if defined $flag;
     return  $self->{Lo2};
 }
 
 #--------------------------------------------------------------------------
-# LoInc( [flag] )
-# Getter/setter for LoInc
+# LoInc( [flag] ) - Getter/setter for LoInc
 #--------------------------------------------------------------------------
 sub LoInc {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{LoInc} = $flag if defined $flag;
     return  $self->{LoInc};
 }
 
 #--------------------------------------------------------------------------
-# La1( [flag] )
-# Getter/setter for La1
+# La1( [flag] ) - Getter/setter for La1
 #--------------------------------------------------------------------------
 sub La1 {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{La1} = $flag if defined $flag;
     return  $self->{La1};
 }
 
 #--------------------------------------------------------------------------
-# La2( [flag] )
-# Getter/setter for La2
+# TR( [flag] ) - Getter/setter for TR
+#--------------------------------------------------------------------------
+sub TR {
+    my ( $self, $flag ) = @_;
+    $self->{TR} = $flag if defined $flag;
+    return  $self->{TR};
+}
+
+#--------------------------------------------------------------------------
+# La2( [flag] ) - Getter/setter for La2
 #--------------------------------------------------------------------------
 sub La2 {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{La2} = $flag if defined $flag;
     return  $self->{La2};
 }
 
 #--------------------------------------------------------------------------
-# LaInc( [flag] )
-# Getter/setter for LaInc
+# LaInc( [flag] )-  Getter/setter for LaInc
 #--------------------------------------------------------------------------
 sub LaInc {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{LaInc} = $flag if defined $flag;
     return  $self->{LaInc};
 }
 
 #--------------------------------------------------------------------------
-# Ni( [flag] )
-# Getter/setter for Ni
+# Ni( [flag] ) - Getter/setter for Ni
 #--------------------------------------------------------------------------
 sub Ni {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{Ni} = $flag if defined $flag;
     return  $self->{Ni};
 }
 
 #--------------------------------------------------------------------------
-# Nj( [flag] )
-# Getter/setter for Nj
+# Nj( [flag] ) - Getter/setter for Nj
 #--------------------------------------------------------------------------
 sub Nj {
-    my $self = shift;
-    my $flag = shift;
-
+    my ( $self, $flag ) = @_;
     $self->{Nj} = $flag if defined $flag;
     return  $self->{Nj};
 }
@@ -775,7 +761,7 @@ sub extract {
     my $offset = $self->lalo2offset( $lat, $long );
 
     if ( $offset < 0 ) {
-        # do not reset error, there will be one from lalo2offset()
+        $self->error( "extract(): offset less than zero" );
         return 1;
     }
 
@@ -890,6 +876,16 @@ sub findNearestTime {
 sub getDataHash {
     my $self = shift;
     return $self->{data};
+}
+
+
+#--------------------------------------------------------------------------
+#  clearData( )
+#--------------------------------------------------------------------------
+sub clearData {
+    my $self = shift;
+    undef $self->{data};
+    return ;
 }
 
 #--------------------------------------------------------------------------
@@ -1289,11 +1285,15 @@ future releases. Do not use these in production code.
 
 =item Nj()
 
+=item TR()
+
 =item adjustLong()
 
 =item calInc()
 
 =item clearError()
+
+=item clearData()
 
 =item dumpit()
 
@@ -1326,7 +1326,13 @@ future releases. Do not use these in production code.
 There are no known bugs in this module version. Geo::ReadGRIB versions before
 1.1 are known to give results that are sometimes off by one LoInc west or 
 east, only on 64bit Perl where nvtype='long double'. Geo::ReadGRIB 1.1 and 
-above will not exhibit this bug. Please report problems through
+above will not exhibit this bug. 
+
+Versions between 0.98_1 and 1.21 may not parse the time headers correctly for some
+forecast records in CMC grib files.  Geo::ReadGRIB 1.22 and above will not exhibit 
+this bug. 
+
+Please report problems through
 
 http://rt.cpan.org
 

@@ -13,6 +13,7 @@ t/7-Geo-ReadGRIB-Iter-CMS.t
 t/8-Geo-ReadGRIB-Dateline-CMS.t
 t/9-Geo-ReadGRIB-offset-CMS.t
 t/10-Geo-ReadGRIB-LaLoRange.t
+t/11-Geo-ReadGRIB-times.t
 t/pod.t
 t/pod-coverage.t
 lib/Geo/ReadGRIB.pm

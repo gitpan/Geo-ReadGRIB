@@ -74,3 +74,9 @@ Revision history for Perl extension Geo::ReadGRIB.
         - Add and improve range testing methods in accord with DRY 
           principle and to remove range test from lalo2offset which 
           is called many times when using extractLaLo()
+
+1.22  Jan 2010
+
+        - Bug fix release for rt.cpan.org ticket #53494 where CMC gribs
+          require a different interpretation of PDS octets 19 and 20
+        - Added fix to cover changes made for fix
