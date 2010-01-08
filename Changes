@@ -75,7 +75,7 @@ Revision history for Perl extension Geo::ReadGRIB.
           principle and to remove range test from lalo2offset which 
           is called many times when using extractLaLo()
 
-1.22  Jan 2010
+1.3  Jan 2010
 
         - Bug fix release for rt.cpan.org ticket #53494 where CMC gribs
           require a different interpretation of PDS octets 19 and 20

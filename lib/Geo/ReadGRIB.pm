@@ -15,7 +15,7 @@ use warnings;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.22;
+our $VERSION = 1.3;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -1329,7 +1329,7 @@ east, only on 64bit Perl where nvtype='long double'. Geo::ReadGRIB 1.1 and
 above will not exhibit this bug. 
 
 Versions between 0.98_1 and 1.21 may not parse the time headers correctly for some
-forecast records in CMC grib files.  Geo::ReadGRIB 1.22 and above will not exhibit 
+forecast records in CMC grib files.  Geo::ReadGRIB 1.3 and above will not exhibit 
 this bug. 
 
 Please report problems through
