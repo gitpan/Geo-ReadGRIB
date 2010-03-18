@@ -80,3 +80,9 @@ Revision history for Perl extension Geo::ReadGRIB.
         - Bug fix release for rt.cpan.org ticket #53494 where CMC gribs
           require a different interpretation of PDS octets 19 and 20
         - Added fix to cover changes made for fix
+
+1.4  March 2010
+
+        - extractLaLo() no longer saves extracted data to the object by
+          default. The new method backflip() turns this behavior back on.
+        - A test was added for backflip()

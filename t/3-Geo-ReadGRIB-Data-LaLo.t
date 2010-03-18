@@ -3,9 +3,11 @@
 # 
 # For this to work there needs to be a specific sample GRIB file
 # and the module has to be able to find wgrib.exe 
+#
+# 3/18/2010 - added test for backflip()
 
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 ###########################################################################
 # Object create test
@@ -42,9 +44,21 @@ diag("ERRORx: $err") if defined $err;
 
 my $data = $w->getDataHash();
 
-ok(defined $data->{$time}->{$lat2}->{$long2}->{$type})
-   or diag("\$data->{$time}->{$lat2}->{$long2}->{$type} is not defined");
+ok( not defined $data->{$time}->{$lat2}->{$long2}->{$type})
+   or diag("\$data->{$time}->{$lat2}->{$long2}->{$type} should not be defined");
 
+$w->backflip(1);
+
+$w->extractLaLo($type, $lat1, $long1, $lat2, $long2, $time); 
+
+$err = $w->getError();
+
+diag("ERRORx: $err") if defined $err;
+
+$data = $w->getDataHash();
+
+ok( defined $data->{$time}->{$lat2}->{$long2}->{$type})
+   or diag("\$data->{$time}->{$lat2}->{$long2}->{$type} not defined");
 
 ok($data->{$time}->{$lat2}->{$long2}->{$type} == 3.71)
  or diag("\$data->{$time}->{$lat2}->{$long2}->{$type}: 

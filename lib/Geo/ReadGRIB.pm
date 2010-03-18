@@ -15,7 +15,7 @@ use warnings;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.3;
+our $VERSION = 1.35;
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -59,6 +59,7 @@ sub new {
 
     $self->{fileName} = $gFile;
     $self->{DEBUG}    = 0;
+    $self->backflip( 0 );
 
     $self->openGrib();
 
@@ -613,8 +614,11 @@ sub lalo2offset {
 # This will be much faster than repeated calls to extract() because only one
 # call to wgrib and just one file open are required.
 #
-# Returns a Geo::ReadGRIB::PlaceIterator object. All data extracted is also
-# stored in the current object.
+# Returns a Geo::ReadGRIB::PlaceIterator object.
+#
+# Data is no longer stored in the current object by default as of version 
+# 1.4. To turn this behavior back on use the backflip() method;
+#
 #
 # require: lat1 >= lat2 and long1 <= long2 - that is, lat1 is north or lat2
 #          and long1 is west of long2 (or is the same as)
@@ -629,6 +633,9 @@ sub extractLaLo {
     my $lat2   = shift;
     my $long2  = shift;
     my $time   = shift;
+
+    my $flipBack = $self->backflip() ? 1 : 0;
+    my $DEBUG = $self->{DEBUG} ? 1 : 0;
 
     my @types;
     if ( ref $type_s eq 'ARRAY' ) {
@@ -700,22 +707,25 @@ sub extractLaLo {
         # Make sure first offset is smallest for any scanning order 
         my ( $offsetFst, $offsetLst ) = sort {$a <=> $b} ( 
             $self->lalo2offset($lat1, $long1),  $self->lalo2offset($lat2, $long2) );
-        
         $dtaLength = ($offsetLst - $offsetFst +1) * 4;        
         seek $F, $offsetFst * 4, 0;
         read $F, $fileDump, $dtaLength; 
 
+        my ($x, $y);
         $dump = "";
-        for ( $lo = $long1 ; $lo <= $long2 ; $lo += $self->LoInc ) {
-            for ( $la = $lat1 ; $la >= $lat2 ; $la -= $self->LaInc ) {
-                $offset = $self->lalo2offset( $la, $lo ) - $offsetFst;
-                $dump = substr $fileDump, $offset * 4, 4;
-                $dump = sprintf "%.2f", unpack "f", $dump;
+        for ( $la = $lat1, $x = 0 ; $la >= $lat2 ; $la -= $self->LaInc, $x++ ) {
+                my $num_lo = sprintf "%d", (($long2 - $long1) / $self->LoInc) +1;
+                $offset = $self->lalo2offset( $la, $long1 ) - $offsetFst;
+                my @luck = unpack "f*", substr $fileDump, $offset * 4, 4 * $num_lo;
+            for ( $lo = $long1, $y = 0 ; $lo <= $long2 ; $lo += $self->LoInc, $y++ ) {
+                my $dump = shift @luck;
+                $dump = defined $dump ? sprintf "%.2f", $dump : 0.00;
                 $dump = 0 if $dump eq '';
                 $dump = "UNDEF" if $dump > 999900000000000000000;
-                print gmtime($tm) . ": $self->{v_catalog}->{$type}  $dump\n"
-                  if $self->{DEBUG};
-                $self->{data}->{$tm}->{$la}->{$lo}->{$type} = $dump;
+                print gmtime($tm) . ": $self->{v_catalog}->{$type}  $dump\n" if $DEBUG;
+                $self->{data}->{$tm}->{$la}->{$lo}->{$type} = $dump if $flipBack;
+                # TODO look into the negative lats with CMS data 
+#               $self->{matrix}->{$tm}->{$type}->[$x]->[$y] = $dump if $la >= 0 and $lo >= 0;
                 $plit->addData( $tm, $la, $lo, $type, $dump );
             }
         }
@@ -726,6 +736,31 @@ sub extractLaLo {
 
     return $plit;
 }
+
+#--------------------------------------------------------------------------
+# backflip( [flag] ) - Getter/setter for the backflip() state.
+#
+# When true, certain older behaviors return. In version 1.4 this is only the
+# storage in the current object of data extracted by extractLaLo(). 
+#
+# default false 
+#--------------------------------------------------------------------------
+sub backflip {
+    my ( $self, $flag ) = @_;
+    $self->{backflip} = $flag if defined $flag;
+    return  $self->{backflip};
+}
+
+#--------------------------------------------------------------------------- 
+# getMatrix({ time => time, type => type }) 
+#
+# return the array of the extracted region for type and time 
+# POSSIBLE FUTURE FUNCTION
+#--------------------------------------------------------------------------- 
+#sub getMatrix {
+#    my	( $self, $r ) = @_;
+#    return $self->{matrix}->{ $r->{time} }->{ $r->{type} };
+#}
 
 #--------------------------------------------------------------------------
 # $plit = extract(data_type, lat, long, [time])
@@ -1122,22 +1157,22 @@ calling wgrib.exe
 
 =over 4
 
-=item $object = new Geo::ReadGRIB "grib_file";
+=item $O = new Geo::ReadGRIB "grib_file";
 
 Returns a Geo::ReadGRIB object that can open GRIB format file "grib_file".
 wgrib.exe is used to extract full header info from the "self describing" GRIB
 file. 
 
-=item $object->getFullCatalog();
+=item $O->getFullCatalog();
 
 getFullCatalog() will extract the full text descriptions of data items in the GRIB 
 file and store them in the object.
 
-=item $object->getParam("show");
+=item $O->getParam("show");
 
 I<getParam(show)> Returns a string listing the names of all published parameters.
 
-=item $object->getParam(param);
+=item $O->getParam(param);
 
 I<getParam(param)> returns a scalar with the value of param where param is one
 of TIME, LAST_TIME, La1, La2, LaInc, Lo1, Lo2, LoInc, fileName.
@@ -1176,13 +1211,13 @@ data.
 =back
 
 
-=item $object->show();
+=item $O->show();
 
 Returns a formatted text string description of the data in the GRIB file.
 This includes latitude, longitude, and time ranges, and data type text 
 descriptions (if getFullCatalog() has been run).
 
-=item $plit = $object->extractLaLo([data_type, ...], lat1, long1, lat2, long2, time);
+=item $plit = $O->extractLaLo([data_type, ...], lat1, long1, lat2, long2, time);
 
 Extracts forecast data for a given time and data type(s) for a range of 
 locations. The locations will be all (lat, long) points in the GRIB file inside the 
@@ -1190,7 +1225,7 @@ rectangular area defined by (lat1, long1) and (lat2, long2) where lat1 >= lat2
 and long1 <= long2. That is, lat1 is north or lat2 and long1 is west of long2
 (or equal to...)
 
-data_type is either a data type name as a string of a list of data name strings
+data_type is either a data type name as a string or a list of data name strings
 as an array reference. 
 
 Time will be in epoch seconds as returned, for example, by 
@@ -1201,12 +1236,14 @@ error will be set if time is out of range.
 Returns a L<Geo::ReadGRIB::PlaceIterator> object containing the extracted data
 which can be used to iterate through the data in order sorted by lat and then long.
 
-Extracted data is also retained in the ReadGRIB object data structure.
+Extracted data is not retained in the ReadGRIB object data structure by default
+as of ReadGRIB version 1.4. Use the backflip() method to turn this behavior 
+back on.
 
 Since extractLaLo() needs only one call to wgrib and one temp file open,
 this is faster than using extract() to get the same data points one at a time.
 
-=item $plit = $object->extract(data_type, lat, long, I<time>);
+=item $plit = $O->extract(data_type, lat, long, I<time>);
 
 Extracts forecast data for given type and location. I<time> is optional.
 Extracts data for all times in file unless a specific time is given 
@@ -1228,13 +1265,20 @@ which can be used to iterate through the data in order sorted by lat and then lo
 
 Extracted data is also retained in the ReadGRIB object data structure.
 
-=item $object->getError();
+=item $O->getError();
 
 Returns string messages for the last error set. If no error is set getError()
 returns undef. Only the most recent error will be show. It's good practice to 
 check errors after actions, especially while developing applications.
 
-=item $object->getDataHash();
+=item $bfFlag = $O->backflip();
+
+When true, certain older behaviors return. In version 1.4 this is only the
+storage in the current object of data extracted by extractLaLo().
+
+backflip() returns false by default
+
+=item $O->getDataHash();
 
 Returns a hash ref with all the data items in the object. This will be all the 
 data extracted from the GRIB file for in the life of the object.
@@ -1249,9 +1293,9 @@ The hash structure is
 
 =over
 
-=item $object->getCatalog() DEPRECATED; 
+=item $O->getCatalog() DEPRECATED; 
 
-=item $object->getCatalogVerbose() DEPRECATED;
+=item $O->getCatalogVerbose() DEPRECATED;
 
 getCatalog() is DEPRECATED and no longer does anything but set an error. 
 It's function of Getting the critical offset index for each data type and time 

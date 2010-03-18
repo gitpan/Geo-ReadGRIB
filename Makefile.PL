@@ -1,5 +1,6 @@
 use 5.6.1;
 use ExtUtils::MakeMaker;
+use Config;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
@@ -12,6 +13,35 @@ if ($] >= 5.00503) {
   );
 }
 
+eval {system("gcc", "-dumpversion")};
+if ($?) {
+    print STDERR <<EOF;
+    #--------------------------- shucks! ---------------------------------
+    #
+    # The gcc compiler was not found in you PATH
+    #
+    # A C compiler is required by this installer and only gcc is
+    # currently supported. 
+    #
+    # Sorry about that.
+    #
+    # If you use another compiler and would like this modules maintainers
+    # to add support for it, please post a bug by sending email to: 
+    #
+    #     bug-Geo-ReadGRIB\@rt.cpan.org
+    #
+    # Please mention the compiler you use and the options required to 
+    # compile a simple C program if you know them. It would also be 
+    # helpful if you are able to help with testing. Particularly if your
+    # compiler isn't free or the maintainers don't have access to your OS
+    #
+    #---------------------------------------------------------------------
+
+EOF
+
+    print "//\$Config{cc}: $Config{cc}//\n";
+    die "OS unsupported";
+}
 
 WriteMakefile(
     NAME         => 'Geo::ReadGRIB',
