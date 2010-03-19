@@ -14,11 +14,11 @@ if ($] >= 5.00503) {
 }
 
 eval {system("gcc", "-dumpversion")};
-if ($?) {
+if ($? and $^O =~ /MSWin/) {
     print STDERR <<EOF;
     #--------------------------- shucks! ---------------------------------
     #
-    # The gcc compiler was not found in you PATH
+    # The gcc compiler was not found in you PATH.
     #
     # A C compiler is required by this installer and only gcc is
     # currently supported. 
@@ -31,9 +31,10 @@ if ($?) {
     #     bug-Geo-ReadGRIB\@rt.cpan.org
     #
     # Please mention the compiler you use and the options required to 
-    # compile a simple C program if you know them. It would also be 
-    # helpful if you are able to help with testing. Particularly if your
-    # compiler isn't free or the maintainers don't have access to your OS
+    # compile a simple, single file, C program if you know them. It would 
+    # also be helpful if you are able to help with testing. Particularly 
+    # if your compiler isn't free and/or the maintainers don't have easy
+    # access to your OS.
     #
     #---------------------------------------------------------------------
 

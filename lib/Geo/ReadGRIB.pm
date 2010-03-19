@@ -16,6 +16,7 @@ use IO::File;
 use Carp;
 
 our $VERSION = 1.35;
+
 use Geo::ReadGRIB::PlaceIterator;
 
 my $LIB_DIR = "./";
@@ -636,6 +637,7 @@ sub extractLaLo {
 
     my $flipBack = $self->backflip() ? 1 : 0;
     my $DEBUG = $self->{DEBUG} ? 1 : 0;
+    my $LoInc = $self->LoInc;
 
     my @types;
     if ( ref $type_s eq 'ARRAY' ) {
@@ -714,10 +716,10 @@ sub extractLaLo {
         my ($x, $y);
         $dump = "";
         for ( $la = $lat1, $x = 0 ; $la >= $lat2 ; $la -= $self->LaInc, $x++ ) {
-                my $num_lo = sprintf "%d", (($long2 - $long1) / $self->LoInc) +1;
+                my $num_lo = sprintf "%d", (($long2 - $long1) / $LoInc) +1;
                 $offset = $self->lalo2offset( $la, $long1 ) - $offsetFst;
                 my @luck = unpack "f*", substr $fileDump, $offset * 4, 4 * $num_lo;
-            for ( $lo = $long1, $y = 0 ; $lo <= $long2 ; $lo += $self->LoInc, $y++ ) {
+            for ( $lo = $long1, $y = 0 ; $lo <= $long2 ; $lo += $LoInc, $y++ ) {
                 my $dump = shift @luck;
                 $dump = defined $dump ? sprintf "%.2f", $dump : 0.00;
                 $dump = 0 if $dump eq '';
@@ -1051,7 +1053,9 @@ sub show {
 
 1;
 
-__END__
+__DATA__
+
+=pod
 
 =head1 NAME
 
@@ -1098,7 +1102,11 @@ Binary" format Weather data files.
   $data = $w->getDataHash();
   
   # $data contains a hash reference to all grib data extracted
-  # by the object in its lifetime.
+  # by extract() the object in its lifetime.
+  #
+  # As of Version 1.35 extractLaLo() does not save extracted data to 
+  # the object by default and so it will not be returned by getDataHash().
+  # Use the backflip() method to bring back this older behavior.
   #  
   # $data->{time}->{lat}->{long}->{data_type} now contains data 
   # for data_type at lat,long and time unless there was an error
@@ -1282,6 +1290,10 @@ backflip() returns false by default
 
 Returns a hash ref with all the data items in the object. This will be all the 
 data extracted from the GRIB file for in the life of the object.
+
+As of Version 1.35 extractLaLo() does not save extracted data to the object by 
+default and so it will not be returned by getDataHash(). Use the backflip() 
+method to bring back this older behavior.
  
 The hash structure is
 
@@ -1407,3 +1419,6 @@ at your option, any later version of Perl 5 you may have available.
 
 
 =cut
+
+__C__
+
