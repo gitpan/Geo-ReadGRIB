@@ -14,7 +14,7 @@ if ($] >= 5.00503) {
 }
 
 eval {system("gcc", "-dumpversion")};
-if ($? and $^O =~ /MSWin/) {
+if ($?) {
     print STDERR <<EOF;
     #--------------------------- shucks! ---------------------------------
     #
