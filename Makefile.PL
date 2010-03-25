@@ -1,3 +1,4 @@
+use strict;
 use 5.6.1;
 use ExtUtils::MakeMaker;
 use Config;
@@ -13,20 +14,67 @@ if ($] >= 5.00503) {
   );
 }
 
-eval {system("gcc", "-dumpversion")};
-if ($?) {
+## check to see if they called for an alternate compiler on the command line
+my $ALT_CC = 0;
+foreach ( @ARGV ) {
+    if ( m/cc=(\w*)/ ) {
+        $ALT_CC = $1;
+        last;
+    }
+}
+
+# Used to check for a 'C' compiler
+# code stolen from 'threads' module, thank you J Hedden!
+sub check_cc {
+    require File::Spec;
+
+    my $cmd = $_[0];
+    if (-x $cmd or MM->maybe_command($cmd)) {
+        return (1);       # CC command found
+    }
+    for my $dir (File::Spec->path(), '.') {
+        my $abs = File::Spec->catfile($dir, $cmd);
+        if (-x $abs or MM->maybe_command($abs)) {
+            return (1);   # CC command found
+        }
+    }
+    return;
+}
+
+sub have_cc {
+    eval { require Config_m; };     # ExtUtils::FakeConfig (+ ActivePerl)
+    if ($@) {
+        eval { require Config; };   # Everyone else
+    }
+    my @chunks = split(/ /, $Config::Config{cc});
+
+    # $Config{cc} may contain args; try to find out the program part
+    while (@chunks) {
+        if (check_cc("@chunks")) {
+            return (1);   # CC command found
+        }
+        pop(@chunks);
+    }
+    return;
+}
+
+if (  not have_cc and not $ALT_CC ) {
     print STDERR <<EOF;
     #--------------------------- shucks! ---------------------------------
     #
-    # The gcc compiler was not found in you PATH.
-    #
-    # A C compiler is required by this installer and only gcc is
-    # currently supported. 
+    # A C compiler is required by this installer. Your Perl was built with
+    # the '$Config::Config{cc}' compiler but I can't find it in your path.
     #
     # Sorry about that.
     #
-    # If you use another compiler and would like this modules maintainers
-    # to add support for it, please post a bug by sending email to: 
+    # If you use another compiler you can try running Makfile.PL again 
+    # like this:
+    #
+    #     perl Makefile.PL cc=My_Compiler
+    #
+    #     where "My_Compiler" is the name of your compiler.
+    #
+    # If this dosn't work, you can post a bug by sending email to: 
     #
     #     bug-Geo-ReadGRIB\@rt.cpan.org
     #
@@ -40,9 +88,10 @@ if ($?) {
 
 EOF
 
-    print "//\$Config{cc}: $Config{cc}//\n";
+    print "//\$Config{cc}: $Config{cc} : ALT_CC: $ALT_CC//\n";
     die "OS unsupported";
 }
+
 
 WriteMakefile(
     NAME         => 'Geo::ReadGRIB',
@@ -55,6 +104,18 @@ WriteMakefile(
 );
 
 sub MY::dynamic {
+    if ( $Config{cc} eq 'cc' or $ALT_CC eq 'cc' ) {
+    return
+'
+dynamic :: $(INST_LIB)/Geo/wgrib.exe
+	@$(NOOP)
+
+$(INST_LIB)/Geo/wgrib.exe: $(C_FILES)
+	$(CC) -o $(INST_LIB)/Geo/wgrib.exe wgrib.c -lm
+';
+}
+else {
+    return
 '
 dynamic :: $(INST_LIB)/Geo/wgrib.exe
 	@$(NOOP)
@@ -62,6 +123,8 @@ dynamic :: $(INST_LIB)/Geo/wgrib.exe
 $(INST_LIB)/Geo/wgrib.exe: $(C_FILES)
 	$(CC) -o $(INST_LIB)/Geo/wgrib.exe wgrib.c
 ';
+}
+
 }
 
 sub MY::libscan {
