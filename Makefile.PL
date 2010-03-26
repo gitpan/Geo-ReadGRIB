@@ -104,7 +104,7 @@ WriteMakefile(
 );
 
 sub MY::dynamic {
-    if ( $Config{cc} eq 'cc' or $ALT_CC eq 'cc' ) {
+    if ( $Config{cc} eq 'cc' or  $Config{cc} =~ m|/cc$| or $ALT_CC eq 'cc' ) {
     return
 '
 dynamic :: $(INST_LIB)/Geo/wgrib.exe
@@ -113,9 +113,9 @@ dynamic :: $(INST_LIB)/Geo/wgrib.exe
 $(INST_LIB)/Geo/wgrib.exe: $(C_FILES)
 	$(CC) -o $(INST_LIB)/Geo/wgrib.exe wgrib.c -lm
 ';
-}
-else {
-    return
+    }
+    else {
+        return
 '
 dynamic :: $(INST_LIB)/Geo/wgrib.exe
 	@$(NOOP)
@@ -123,7 +123,7 @@ dynamic :: $(INST_LIB)/Geo/wgrib.exe
 $(INST_LIB)/Geo/wgrib.exe: $(C_FILES)
 	$(CC) -o $(INST_LIB)/Geo/wgrib.exe wgrib.c
 ';
-}
+    }
 
 }
 
