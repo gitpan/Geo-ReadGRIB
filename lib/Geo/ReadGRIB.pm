@@ -15,7 +15,7 @@ use warnings;
 use IO::File;
 use Carp;
 
-our $VERSION = 1.35;
+our $VERSION = 1.4;
 
 use Geo::ReadGRIB::PlaceIterator;
 
@@ -1104,7 +1104,7 @@ Binary" format Weather data files.
   # $data contains a hash reference to all grib data extracted
   # by extract() the object in its lifetime.
   #
-  # As of Version 1.35 extractLaLo() does not save extracted data to 
+  # As of Version 1.4 extractLaLo() does not save extracted data to 
   # the object by default and so it will not be returned by getDataHash().
   # Use the backflip() method to bring back this older behavior.
   #  
@@ -1291,7 +1291,7 @@ backflip() returns false by default
 Returns a hash ref with all the data items in the object. This will be all the 
 data extracted from the GRIB file for in the life of the object.
 
-As of Version 1.35 extractLaLo() does not save extracted data to the object by 
+As of Version 1.4 extractLaLo() does not save extracted data to the object by 
 default and so it will not be returned by getDataHash(). Use the backflip() 
 method to bring back this older behavior.
  

@@ -86,3 +86,6 @@ Revision history for Perl extension Geo::ReadGRIB.
         - extractLaLo() no longer saves extracted data to the object by
           default. The new method backflip() turns this behavior back on.
         - A test was added for backflip()
+        - Changes made to Makefile.PL to support the cc compiler on Solaris
+          and give a helpful message for those with a different compiler 
+          than Perl was built with.
